@@ -92,8 +92,9 @@ const SEED_SLATE={date:"Mon Nov 16",games:[
 
 // ---------- state ----------
 const state={view:"home",feed:"tonight",q:"",bLegs:3,bMin:60,stake:"10",banner:true};
-let legOdds=Object.create(null), logos=Object.create(null);
-const setLogo=(t,u)=>{if(t&&typeof u==="string"&&/^https:\/\/a\.espncdn\.com\/[\w\/.\-]+\.png$/.test(u))logos[t]=u};
+let legOdds=Object.create(null);
+const SLUG={GSW:"gs",NOP:"no",NYK:"ny",SAS:"sa",UTA:"utah",WAS:"wsh"}; // ESPN image names that differ from the team code
+const logoURL=t=>`https://a.espncdn.com/i/teamlogos/nba/500-dark/scoreboard/${SLUG[t]||t.toLowerCase()}.png`;
 let results=[...SEED_RESULTS], slate=SEED_SLATE, rec=Object.create(null), form={}, slip=[], follows=[], built=[];
 const isTeam=t=>typeof t==="string"&&Object.prototype.hasOwnProperty.call(TEAMS,t);
 const isNum=x=>typeof x==="number"&&Number.isFinite(x);
@@ -149,7 +150,7 @@ const I={
  info:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`,
  ticket:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 9V6a1 1 0 011-1h16a1 1 0 011 1v3a3 3 0 000 6v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a3 3 0 000-6z"/></svg>`
 };
-const av=t=>{const u=isTeam(t)?logos[t]:null;return `<div class="av${u?" logo":""}" style="background:${isTeam(t)?TEAMS[t][3]:"#3d3d45"}"><span>${esc(t)}</span>${u?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('logo');this.remove()">`:""}</div>`};
+const av=t=>{const u=isTeam(t)?logoURL(t):null;return `<div class="av${u?" logo":""}" style="background:${isTeam(t)?TEAMS[t][3]:"#3d3d45"}"><span>${esc(t)}</span>${u?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('logo');this.remove()">`:""}</div>`};
 const fmtML=n=>(n>0?"+":"")+Math.round(n);
 const dots=t=>{const f=(form[t]||[]).slice(0,5).reverse();return f.length?`<span class="dots" role="img" aria-label="Recent results: ${f.map(x=>x.w?"W":"L").join(" ")}">${f.map(x=>`<span class="dot ${x.w?"w":"l"}" title="${x.w?"W":"L"} ${x.ts}-${x.os} ${x.home?"vs":"at"} ${esc(x.opp)}"></span>`).join("")}</span>`:""};
 
@@ -335,7 +336,6 @@ $("fab").onclick=()=>go("build");
     if(Array.isArray(c.results)){const have=new Set(results.map(r=>r.id));c.results.forEach(r=>{const v=cleanResult(r);if(v&&!have.has(v.id)){results.push(v);have.add(v.id)}})}
     const sl=cleanSlate(c.slate); if(sl){slate=sl;live=true}
     if(isNum(c.updatedAt))updatedAt=c.updatedAt;
-    if(c.logos&&typeof c.logos==="object")Object.keys(c.logos).forEach(t=>{if(isTeam(t))setLogo(t,c.logos[t])});
   }catch(e){}
 })();
 function cleanResult(r){return r&&typeof r.id==="string"&&typeof r.d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(r.d)&&isTeam(r.h)&&isTeam(r.a)&&r.h!==r.a&&isNum(r.hs)&&isNum(r.as)&&r.hs>=0&&r.as>=0&&r.hs!==r.as?{id:r.id,d:r.d,h:r.h,a:r.a,hs:r.hs,as:r.as}:null}
@@ -374,7 +374,6 @@ function parseBoard(j,iso){
   (j&&Array.isArray(j.events)?j.events:[]).forEach(ev=>{try{
     const c=ev.competitions[0], H=c.competitors.find(x=>x.homeAway==="home"), A=c.competitors.find(x=>x.homeAway==="away");
     const h=code(H.team.abbreviation), a=code(A.team.abbreviation); if(!h||!a||h===a)return;
-    setLogo(h,H.team.logo);setLogo(a,A.team.logo);
     const st=(ev.status&&ev.status.type)||{}, nm=String(st.name||"");
     if(/POSTPONED|CANCEL/i.test(nm))return;
     const state=st.completed===true||st.state==="post"?"post":st.state==="in"?"in":"pre";
@@ -405,8 +404,7 @@ async function refresh(manual){
     // 3. records: league standings, then anything newer printed on the scoreboard
     try{const s=await getJSON(`${ESPN}/v2/sports/basketball/nba/standings`);
       (Array.isArray(s.children)?s.children:[]).forEach(ch=>((ch.standings&&ch.standings.entries)||[]).forEach(e=>{try{
-        const t=code(e.team.abbreviation);if(t&&!logos[t]&&Array.isArray(e.team.logos)&&e.team.logos[0])setLogo(t,e.team.logos[0].href);
-        const val=n=>{const x=e.stats.find(y=>y&&y.name===n);return x?Math.round(x.value):NaN}, w=val("wins"), l=val("losses");
+        const t=code(e.team.abbreviation);const val=n=>{const x=e.stats.find(y=>y&&y.name===n);return x?Math.round(x.value):NaN}, w=val("wins"), l=val("losses");
         if(t&&Number.isInteger(w)&&Number.isInteger(l)&&w>=0&&l>=0&&w+l<=82&&w+l>=rec[t].w+rec[t].l)rec[t]={w,l};
       }catch(err){}}));
     }catch(err){}
@@ -420,7 +418,7 @@ async function refresh(manual){
     buildForm(); prune();
     if(!restored){restored=true;dropped.forEach(sv=>{if(!slip.some(l=>l.k===sv.k))slip.push(sv)});prune()}
     store("pl2_slip",slip); store("pl3_days",doneDays);
-    store("pl3_cache",{slate,rec:Object.assign({},rec),results,updatedAt,logos:Object.assign({},logos)});
+    store("pl3_cache",{slate,rec:Object.assign({},rec),results,updatedAt});
     if(manual)toast("Updated");
   }catch(e){net="fail";if(manual)toast("Could not reach the data source")}
   busy=false; softRender();
