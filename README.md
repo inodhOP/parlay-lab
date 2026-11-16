@@ -2,6 +2,8 @@
 
 # Parlay Lab
 
+[![Tests](https://github.com/inodhOP/parlay-lab/actions/workflows/test.yml/badge.svg)](https://github.com/inodhOP/parlay-lab/actions/workflows/test.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-7c5cff.svg)](LICENSE)
+
 A small web app for building NBA moneyline parlays, made to sit beside FanDuel Sportsbook. It shows every game on the slate with a win chance for each team, lets you pick winners, and checks the price you are being offered against fair odds before you bet.
 
 **Open the app: https://inodhop.github.io/parlay-lab/**
