@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Parlay Lab</title>
+<meta name="theme-color" content="#0b0b0e">
+<meta name="description" content="NBA moneyline parlay helper: win chances, fair odds and FanDuel pricing checks.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c5cff'/%3E%3Cpath d='M16 44L32 30L48 20' stroke='%23fff' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='16' cy='44' r='6' fill='%23fff'/%3E%3Ccircle cx='32' cy='30' r='6' fill='%23fff'/%3E%3Ccircle cx='48' cy='20' r='6' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 :root{--bg:#0b0b0e;--card:#141418;--card2:#1c1c22;--line:#25252d;--txt:#ededf0;--mut:#85858f;--acc:#7c5cff;--g:#3fb96b;--r:#e5534b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -37,6 +40,9 @@ main{padding:12px 12px 0;max-width:680px;margin:0 auto}
 .split{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line);margin:8px 0 10px}
 .split i{display:block;height:100%}
 .leg{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.leg:last-child{border:0;padding-bottom:0}
+.leg.col{display:block}.oddsrow{display:flex;align-items:center;gap:10px;margin:8px 0 0 48px}.oddsrow input{width:104px;padding:8px 10px;flex:0 0 auto}
+.av.logo{background:var(--card2)!important}.av.logo span{display:none}.av img{width:30px;height:30px;object-fit:contain;display:block}
+a.btn{text-decoration:none;color:inherit;display:block;text-align:center}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .stat{background:var(--card2);border-radius:12px;padding:11px 12px}.stat b{display:block;font-size:20px;font-weight:700;margin-top:2px}
 .note{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut);margin-bottom:10px}
@@ -85,7 +91,9 @@ const SEED_SLATE={date:"Mon Nov 16",games:[
  {a:"POR",h:"MIN",t:"8:00 PM",wa:44.1,wh:55.9},{a:"PHX",h:"DEN",t:"9:00 PM",wa:20.3,wh:79.7}]};
 
 // ---------- state ----------
-const state={view:"home",feed:"tonight",q:"",bLegs:3,bMin:60,bookOdds:"",banner:true};
+const state={view:"home",feed:"tonight",q:"",bLegs:3,bMin:60,stake:"10",banner:true};
+let legOdds=Object.create(null), logos=Object.create(null);
+const setLogo=(t,u)=>{if(t&&typeof u==="string"&&/^https:\/\/a\.espncdn\.com\/[\w\/.\-]+\.png$/.test(u))logos[t]=u};
 let results=[...SEED_RESULTS], slate=SEED_SLATE, rec=Object.create(null), form={}, slip=[], follows=[], built=[];
 const isTeam=t=>typeof t==="string"&&Object.prototype.hasOwnProperty.call(TEAMS,t);
 const isNum=x=>typeof x==="number"&&Number.isFinite(x);
@@ -141,7 +149,8 @@ const I={
  info:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`,
  ticket:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 9V6a1 1 0 011-1h16a1 1 0 011 1v3a3 3 0 000 6v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a3 3 0 000-6z"/></svg>`
 };
-const av=t=>`<div class="av" style="background:${isTeam(t)?TEAMS[t][3]:"#3d3d45"}">${esc(t)}</div>`;
+const av=t=>{const u=isTeam(t)?logos[t]:null;return `<div class="av${u?" logo":""}" style="background:${isTeam(t)?TEAMS[t][3]:"#3d3d45"}"><span>${esc(t)}</span>${u?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('logo');this.remove()">`:""}</div>`};
+const fmtML=n=>(n>0?"+":"")+Math.round(n);
 const dots=t=>{const f=(form[t]||[]).slice(0,5).reverse();return f.length?`<span class="dots" role="img" aria-label="Recent results: ${f.map(x=>x.w?"W":"L").join(" ")}">${f.map(x=>`<span class="dot ${x.w?"w":"l"}" title="${x.w?"W":"L"} ${x.ts}-${x.os} ${x.home?"vs":"at"} ${esc(x.opp)}"></span>`).join("")}</span>`:""};
 
 // ---------- views ----------
@@ -166,7 +175,8 @@ function gameCard(g){
    <div class="row"><div class="mt sp">${esc(statusText(g))}</div><div class="mt">${open?"Lean "+esc(fav)+" "+pc(Math.max(p.h,p.a)):"Pre-game estimate"}</div></div>
    ${side(g.a,p.a,"Away")}${side(g.h,p.h,"Home")}
    <div class="split"><i style="width:${(p.a*100).toFixed(1)}%;background:${leg&&leg.team===g.a?"var(--acc)":"#5a5a66"}"></i><i style="width:${(p.h*100).toFixed(1)}%;background:${leg&&leg.team===g.h?"var(--acc)":"#34343d"}"></i></div>
-   <div class="mt">Home side: record model ${pc(p.model)}${p.feed!=null?" · sportsbook line "+pc(p.feed):""} · fair odds ${american(p.h)}</div></div>`;
+   <div class="mt">Home side: record model ${pc(p.model)}${p.feed!=null?" · market "+pc(p.feed):""} · fair odds ${american(p.h)}</div>
+   ${isNum(g.mla)&&isNum(g.mlh)?`<div class="mt">${esc(g.prov||"Sportsbook")} moneyline: ${esc(g.a)} ${fmtML(g.mla)}, ${esc(g.h)} ${fmtML(g.mlh)}</div>`:""}</div>`;
 }
 function statusLine(n){
   const when=updatedAt?new Date(updatedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
@@ -181,7 +191,7 @@ function renderHome(){
   const empty=state.feed==="following"?(follows.length?"None of the teams you follow are on this slate.":"Follow teams from the Teams tab to see their games here."):"No games on this slate.";
   main.innerHTML=banner+statusLine(list.length)+
    (list.length?list.map(gameCard).join(""):`<div class="empty">${empty}</div>`)+
-   `<div class="foot">Win chance blends each team's record with the sportsbook line when one is posted. Squares show the last few results, oldest to newest.</div>`;
+   `<div class="foot">Win chance blends each team's record with the posted moneyline when there is one. Squares show the last few results, oldest to newest.</div>`;
 }
 
 function renderTeams(){
@@ -217,22 +227,48 @@ function renderBuild(){
   $("bm").onchange=e=>{state.bMin=+e.target.value;renderBuild()};
 }
 
-function edgeHTML(pr){
-  const raw=String(state.bookOdds).trim(); if(!raw||!slip.length)return "";
-  const m=raw.replace(/[−–—]/g,"-").match(/^[+-]?\d+(\.\d+)?$/), bo=m?parseFloat(m[0]):NaN;
-  if(!(Number.isFinite(bo)&&Math.abs(bo)>=100))return `<div class="mt" style="margin-top:8px">Enter American odds, for example +450 or -120.</div>`;
-  const imp=bo>0?100/(bo+100):-bo/(-bo+100), ev=pr*(bo>0?bo/100:100/-bo)-(1-pr), v=Math.round(ev*1000)/100;
-  return `<div class="stat" style="margin-top:8px"><span class="mt">Book implies ${pc(imp)} · expected return per $10</span><b class="${v>0?"g":v<0?"r":""}">${v>0?"+":v<0?"-":""}$${Math.abs(v).toFixed(2)}</b></div>`;
+function parseOdds(raw){ // American odds only, e.g. -150 or +240
+  const m=String(raw==null?"":raw).trim().replace(/[−–—]/g,"-").match(/^[+-]?\d+(\.\d+)?$/), n=m?parseFloat(m[0]):NaN;
+  return Number.isFinite(n)&&Math.abs(n)>=100?n:null;
+}
+const dec=n=>n>0?1+n/100:1+100/-n, implied=n=>1/dec(n);
+const decToAmerican=d=>d>=2?"+"+Math.round((d-1)*100):"-"+Math.round(100/(d-1));
+function legNote(l){
+  const raw=String(legOdds[l.k]||"").trim(), n=parseOdds(raw), pr=legProb(l);
+  if(!raw)return "FanDuel moneyline";
+  if(n==null)return "Use American odds, like -150";
+  const d=pr-implied(n);
+  return `implies ${pc(implied(n))} · <span class="${d>0.005?"g":d<-0.005?"r":""}">model ${pc(pr)}</span>`;
+}
+function edgeHTML(){
+  if(!slip.length)return "";
+  const odds=slip.map(l=>parseOdds(legOdds[l.k]));
+  const pr=slipProb(), st=parseFloat(state.stake), stake=Number.isFinite(st)&&st>0?st:10;
+  if(odds.some(x=>x==null)){const fd=pr>0&&pr<1?1/pr:null; // no FanDuel odds yet: estimate from fair odds
+    return `<div class="mt" style="margin-top:10px">Enter FanDuel's moneyline for each pick to price the parlay.</div>${fd?`<div class="grid"><div class="stat"><span class="mt">At fair odds, $${stake.toFixed(2)} wins</span><b>$${(stake*(fd-1)).toFixed(2)}</b></div><div class="stat"><span class="mt">Total back</span><b>$${(stake*fd).toFixed(2)}</b></div></div>`:""}`}
+  const d=odds.reduce((a,n)=>a*dec(n),1);
+  const ev=Math.round((pr*(d-1)-(1-pr))*stake*100)/100;
+  return `<div class="grid"><div class="stat"><span class="mt">FanDuel parlay odds</span><b>${slip.length>1?decToAmerican(d):fmtML(odds[0])}</b></div><div class="stat"><span class="mt">$${stake.toFixed(2)} wins</span><b>$${(stake*(d-1)).toFixed(2)}</b></div></div>
+   <div class="mt" style="margin-top:8px">Total back if it hits: $${(stake*d).toFixed(2)}</div>
+   <div class="stat" style="margin-top:8px"><span class="mt">FanDuel implies ${pc(1/d)} · model says ${pc(pr)} · expected return on $${stake.toFixed(2)}</span><b class="${ev>0?"g":ev<0?"r":""}">${ev>0?"+":ev<0?"-":""}$${Math.abs(ev).toFixed(2)}</b></div>`;
 }
 function renderSlip(){
   const pr=slipProb();
-  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">My slip</div>${slip.length?slip.map(l=>{const g=findGame(l.k);return `<div class="leg">${av(l.team)}<div class="sp"><div class="nm">${esc(tname(l.team))} to win</div><div class="mt">${g?(l.team===g.h?"vs "+esc(g.a):"at "+esc(g.h))+" · "+esc(g.t):""}</div></div><b>${pc(legProb(l))}</b><button class="x" data-a="rm" data-k="${esc(l.k)}" aria-label="Remove">${I.close}</button></div>`}).join(""):`<div class="empty">No picks yet. Pick a winner on any game, or use the plus button to auto-build.</div>`}</div>
-   ${slip.length?`<div class="card"><div class="grid" style="margin-top:0"><div class="stat"><span class="mt">Chance all hit</span><b>${pc(pr)}</b></div><div class="stat"><span class="mt">Fair odds</span><b>${american(pr)}</b></div></div><div id="edge">${edgeHTML(pr)}</div>
-     <label class="f">Your sportsbook's odds for this parlay<input id="bo" aria-label="Sportsbook odds" placeholder="e.g. +450" value="${esc(state.bookOdds)}" autocomplete="off"></label>
-     <div class="row" style="margin-top:12px"><button class="btn wide" data-a="copy">Copy slip</button><button class="btn wide" data-a="clear">Clear</button></div></div>
-     <div class="note">If the book's odds pay more than the fair odds, the bet is priced in your favour by this model. The model is simple and can be wrong.</div>`:""}`;
-  const b=$("bo");if(b)b.oninput=e=>{state.bookOdds=e.target.value;$("edge").innerHTML=edgeHTML(slipProb())};
+  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">My slip</div>${slip.length?slip.map(l=>{const g=findGame(l.k), post=g?(l.team===g.h?g.mlh:g.mla):null;
+    return `<div class="leg col"><div class="row">${av(l.team)}<div class="sp"><div class="nm">${esc(tname(l.team))} moneyline</div><div class="mt">${g?(l.team===g.h?"vs "+esc(g.a):"at "+esc(g.h))+" · "+esc(statusText(g)):""}</div></div><b>${pc(legProb(l))}</b><button class="x" data-a="rm" data-k="${esc(l.k)}" aria-label="Remove ${esc(tname(l.team))}">${I.close}</button></div>
+     <div class="oddsrow"><input data-odds="${esc(l.k)}" aria-label="FanDuel odds for ${esc(tname(l.team))}" placeholder="${isNum(post)?fmtML(post):"-150"}" value="${esc(legOdds[l.k]||"")}" autocomplete="off" autocapitalize="off"><div class="mt sp" data-note="${esc(l.k)}">${legNote(l)}</div></div></div>`}).join(""):`<div class="empty">No picks yet. Pick a winner on any game, or use the plus button to auto-build.</div>`}</div>
+   ${slip.length?`<div class="card"><div class="grid" style="margin-top:0"><div class="stat"><span class="mt">Chance all hit</span><b>${pc(pr)}</b></div><div class="stat"><span class="mt">Fair odds</span><b>${american(pr)}</b></div></div>
+     <label class="f" style="margin-top:12px">Your bet ($)<input id="stake" inputmode="decimal" aria-label="Stake in dollars" value="${esc(state.stake)}" autocomplete="off"></label>
+     <div id="edge">${edgeHTML()}</div>
+     <a class="btn pri wide" style="margin-top:12px" href="https://sportsbook.fanduel.com/" target="_blank" rel="noopener">Open FanDuel</a>
+     <div class="row" style="margin-top:8px"><button class="btn wide" data-a="copy">Copy slip</button><button class="btn wide" data-a="clear">Clear</button></div></div>
+     <div class="note">Type the moneyline FanDuel shows for each pick. The grey number in each box is the line posted in the data feed, as a guide. If FanDuel's parlay pays more than the fair odds, the price is in your favour by this model, which is simple and can be wrong.</div>`:""}`;
 }
+main.addEventListener("input",e=>{
+  const t=e.target; if(!t||!t.dataset)return;
+  if(t.dataset.odds){const k=t.dataset.odds;legOdds[k]=t.value;store("pl3_odds",Object.assign({},legOdds));const l=slip.find(x=>x.k===k), n=main.querySelector(`[data-note="${CSS.escape(k)}"]`);if(l&&n)n.innerHTML=legNote(l);const ed=$("edge");if(ed)ed.innerHTML=edgeHTML()}
+  else if(t.id==="stake"){state.stake=t.value;const ed=$("edge");if(ed)ed.innerHTML=edgeHTML()}
+});
 
 function renderMe(){
   const dates=results.map(r=>r.d).sort();
@@ -240,8 +276,9 @@ function renderMe(){
    <div class="grid"><div class="stat"><span class="mt">Results logged</span><b>${results.length}</b></div><div class="stat"><span class="mt">Games on slate</span><b>${slate.games.length}</b></div>
    <div class="stat"><span class="mt">Teams followed</span><b>${follows.length}</b></div><div class="stat"><span class="mt">Results range</span><b style="font-size:15px">${dates.length?dates[0].slice(5)+" to "+dates[dates.length-1].slice(5):"n/a"}</b></div></div>
    ${!state.banner?`<button class="btn wide" style="margin-top:12px" data-a="showbanner">Show the parlay banner</button>`:""}</div>
-   <div class="note">How it works: each team's win-loss record is turned into a strength rating, the home team gets a small boost, and the result is averaged with the sportsbook's line when one is posted.</div>
+   <div class="note">How it works: each team's win-loss record is turned into a strength rating, the home team gets a small boost, and the result is averaged with the posted moneyline when there is one.</div>
    <div class="note">Schedules, scores and records load from ESPN's public data whenever the app is open, and refresh every few minutes. Nothing needs to be updated by hand.</div>
+   <div class="note">Built to be used alongside FanDuel Sportsbook: you enter FanDuel's odds and it checks the price. It is an independent tool, not affiliated with or endorsed by FanDuel, ESPN or the NBA. Team logos belong to their owners and load from ESPN.</div>
    <div class="note">No model makes parlays safe. Keep stakes small.</div>`;
 }
 
@@ -264,10 +301,11 @@ function pick(k,t){
   store("pl2_slip",slip);
 }
 async function copySlip(btn){
-  const pr=slipProb(), t=slip.map(l=>`${tname(l.team)} to win`).join("\n")+`\nEst. ${pc(pr)} (fair ${american(pr)})`;
+  const pr=slipProb(), odds=slip.map(l=>parseOdds(legOdds[l.k])), all=slip.length&&odds.every(x=>x!=null);
+  const t=(slip.length>1?"Moneyline parlay":"Moneyline")+"\n"+slip.map((l,i)=>`${tname(l.team)} ML${odds[i]!=null?" ("+fmtML(odds[i])+")":""}`).join("\n")+`\nModel: ${pc(pr)} (fair ${american(pr)})`+(all&&slip.length>1?`\nFanDuel: ${decToAmerican(odds.reduce((a,n)=>a*dec(n),1))}`:"");
   try{await navigator.clipboard.writeText(t);btn.textContent="Copied";return}catch(e){}
   try{const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();const ok=document.execCommand("copy");ta.remove();if(ok){btn.textContent="Copied";return}}catch(e){}
-  if(!$("copyout"))btn.parentNode.insertAdjacentHTML("afterend",`<textarea id="copyout" readonly rows="${slip.length+1}" style="width:100%;margin-top:10px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:10px;font:14px Inter,system-ui,sans-serif">${esc(t)}</textarea>`);
+  if(!$("copyout"))btn.parentNode.insertAdjacentHTML("afterend",`<textarea id="copyout" readonly rows="${slip.length+3}" style="width:100%;margin-top:10px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:10px;font:14px Inter,system-ui,sans-serif">${esc(t)}</textarea>`);
   btn.textContent="Copy from below";
 }
 document.addEventListener("click",e=>{
@@ -281,9 +319,9 @@ document.addEventListener("click",e=>{
   else if(a==="openbuild"){go("build")}
   else if(a==="closebanner"){state.banner=false;store("pl2_banner",false);render()}
   else if(a==="showbanner"){state.banner=true;store("pl2_banner",true);render()}
-  else if(a==="usebuilt"){if(built.length<2)return;slip=built.map(x=>({k:x.k,team:x.team,date:slate.date}));state.bookOdds="";store("pl2_slip",slip);toast(`Slip set to ${slip.length} picks`);go("slip")}
+  else if(a==="usebuilt"){if(built.length<2)return;slip=built.map(x=>({k:x.k,team:x.team,date:slate.date}));store("pl2_slip",slip);toast(`Slip set to ${slip.length} picks`);go("slip")}
   else if(a==="rm"){const i=slip.findIndex(l=>l.k===b.dataset.k);if(i>=0){slip.splice(i,1);store("pl2_slip",slip)}render()}
-  else if(a==="clear"){slip=[];state.bookOdds="";store("pl2_slip",slip);render()}
+  else if(a==="clear"){slip=[];legOdds=Object.create(null);store("pl3_odds",{});store("pl2_slip",slip);render()}
   else if(a==="copy"){copySlip(b)}
   else if(a==="refresh"){refresh(true)}
 });
@@ -297,15 +335,17 @@ $("fab").onclick=()=>go("build");
     if(Array.isArray(c.results)){const have=new Set(results.map(r=>r.id));c.results.forEach(r=>{const v=cleanResult(r);if(v&&!have.has(v.id)){results.push(v);have.add(v.id)}})}
     const sl=cleanSlate(c.slate); if(sl){slate=sl;live=true}
     if(isNum(c.updatedAt))updatedAt=c.updatedAt;
+    if(c.logos&&typeof c.logos==="object")Object.keys(c.logos).forEach(t=>{if(isTeam(t))setLogo(t,c.logos[t])});
   }catch(e){}
 })();
 function cleanResult(r){return r&&typeof r.id==="string"&&typeof r.d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(r.d)&&isTeam(r.h)&&isTeam(r.a)&&r.h!==r.a&&isNum(r.hs)&&isNum(r.as)&&r.hs>=0&&r.as>=0&&r.hs!==r.as?{id:r.id,d:r.d,h:r.h,a:r.a,hs:r.hs,as:r.as}:null}
 function cleanSlate(sd){
   if(!sd||!Array.isArray(sd.games)||typeof sd.date!=="string"||!sd.date.trim())return null;
   const seen=new Set();
-  const gs=sd.games.filter(x=>x&&isTeam(x.a)&&isTeam(x.h)&&x.a!==x.h&&!seen.has(x.a+"@"+x.h)&&seen.add(x.a+"@"+x.h)).map(x=>({a:x.a,h:x.h,t:typeof x.t==="string"?x.t:"",wa:isNum(x.wa)?x.wa:null,wh:isNum(x.wh)?x.wh:null,state:x.state==="in"||x.state==="post"?x.state:"pre",hs:isNum(x.hs)?x.hs:null,as:isNum(x.as)?x.as:null}));
+  const gs=sd.games.filter(x=>x&&isTeam(x.a)&&isTeam(x.h)&&x.a!==x.h&&!seen.has(x.a+"@"+x.h)&&seen.add(x.a+"@"+x.h)).map(x=>({a:x.a,h:x.h,t:typeof x.t==="string"?x.t:"",wa:isNum(x.wa)?x.wa:null,wh:isNum(x.wh)?x.wh:null,mla:isNum(x.mla)&&Math.abs(x.mla)>=100?x.mla:null,mlh:isNum(x.mlh)&&Math.abs(x.mlh)>=100?x.mlh:null,prov:typeof x.prov==="string"?x.prov.slice(0,30):"",state:x.state==="in"||x.state==="post"?x.state:"pre",hs:isNum(x.hs)?x.hs:null,as:isNum(x.as)?x.as:null}));
   return {date:sd.date.trim(),games:gs};
 }
+(function(){const o=load("pl3_odds",null);if(o&&typeof o==="object"&&!Array.isArray(o))Object.keys(o).forEach(k=>{if(typeof o[k]==="string"&&o[k].length<=12)legOdds[k]=o[k]})})();
 buildForm();prune();
 const dropped=savedSlip.filter(sv=>!slip.some(l=>l.k===sv.k)); // saved picks that are not on the slate shown at startup
 let restored=false;
@@ -327,13 +367,14 @@ function moneyline(c){ // sportsbook line turned into a win chance for each side
   const hm=num(o.homeTeamOdds&&o.homeTeamOdds.moneyLine,...deep("home")), am=num(o.awayTeamOdds&&o.awayTeamOdds.moneyLine,...deep("away"));
   if(hm==null||am==null)return null;
   const imp=x=>x>0?100/(x+100):-x/(-x+100), ph=imp(hm), pa=imp(am);
-  return {wh:ph/(ph+pa)*100,wa:pa/(ph+pa)*100};
+  return {wh:ph/(ph+pa)*100,wa:pa/(ph+pa)*100,mlh:hm,mla:am,prov:o.provider&&typeof o.provider.name==="string"?o.provider.name:""};
 }
 function parseBoard(j,iso){
   const out=[];
   (j&&Array.isArray(j.events)?j.events:[]).forEach(ev=>{try{
     const c=ev.competitions[0], H=c.competitors.find(x=>x.homeAway==="home"), A=c.competitors.find(x=>x.homeAway==="away");
     const h=code(H.team.abbreviation), a=code(A.team.abbreviation); if(!h||!a||h===a)return;
+    setLogo(h,H.team.logo);setLogo(a,A.team.logo);
     const st=(ev.status&&ev.status.type)||{}, nm=String(st.name||"");
     if(/POSTPONED|CANCEL/i.test(nm))return;
     const state=st.completed===true||st.state==="post"?"post":st.state==="in"?"in":"pre";
@@ -341,7 +382,7 @@ function parseBoard(j,iso){
     const recOf=x=>{const r=Array.isArray(x.records)?x.records.find(y=>y&&y.type==="total"):null, m=r&&/^(\d+)-(\d+)$/.exec(String(r.summary||""));return m?{w:+m[1],l:+m[2]}:null};
     const ml=state==="pre"?moneyline(c):null;
     out.push({id:String(ev.id),d:iso,h,a,state,done:st.completed===true,hs:Number.isFinite(hs)?hs:null,as:Number.isFinite(as)?as:null,
-      t:isNaN(when)?"":when.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),wa:ml?ml.wa:null,wh:ml?ml.wh:null,rh:recOf(H),ra:recOf(A)});
+      t:isNaN(when)?"":when.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),wa:ml?ml.wa:null,wh:ml?ml.wh:null,mla:ml?ml.mla:null,mlh:ml?ml.mlh:null,prov:ml?ml.prov:"",rh:recOf(H),ra:recOf(A)});
   }catch(e){}});
   return out;
 }
@@ -364,7 +405,8 @@ async function refresh(manual){
     // 3. records: league standings, then anything newer printed on the scoreboard
     try{const s=await getJSON(`${ESPN}/v2/sports/basketball/nba/standings`);
       (Array.isArray(s.children)?s.children:[]).forEach(ch=>((ch.standings&&ch.standings.entries)||[]).forEach(e=>{try{
-        const t=code(e.team.abbreviation), val=n=>{const x=e.stats.find(y=>y&&y.name===n);return x?Math.round(x.value):NaN}, w=val("wins"), l=val("losses");
+        const t=code(e.team.abbreviation);if(t&&!logos[t]&&Array.isArray(e.team.logos)&&e.team.logos[0])setLogo(t,e.team.logos[0].href);
+        const val=n=>{const x=e.stats.find(y=>y&&y.name===n);return x?Math.round(x.value):NaN}, w=val("wins"), l=val("losses");
         if(t&&Number.isInteger(w)&&Number.isInteger(l)&&w>=0&&l>=0&&w+l<=82&&w+l>=rec[t].w+rec[t].l)rec[t]={w,l};
       }catch(err){}}));
     }catch(err){}
@@ -378,7 +420,7 @@ async function refresh(manual){
     buildForm(); prune();
     if(!restored){restored=true;dropped.forEach(sv=>{if(!slip.some(l=>l.k===sv.k))slip.push(sv)});prune()}
     store("pl2_slip",slip); store("pl3_days",doneDays);
-    store("pl3_cache",{slate,rec:Object.assign({},rec),results,updatedAt});
+    store("pl3_cache",{slate,rec:Object.assign({},rec),results,updatedAt,logos:Object.assign({},logos)});
     if(manual)toast("Updated");
   }catch(e){net="fail";if(manual)toast("Could not reach the data source")}
   busy=false; softRender();
