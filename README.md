@@ -108,7 +108,7 @@ git push origin main:gh-pages
 
 Parlay Lab is an independent hobby project. It is not affiliated with, endorsed by or connected to FanDuel, ESPN, the NBA or any team. Team names and logos belong to their owners; logos are loaded from ESPN and are not stored in this repository.
 
-This is not betting advice. No model makes parlays safe, and every extra leg lowers the chance of a win. Bet only where it is legal for you, only if you are of legal age, and only what you can afford to lose. If gambling stops being fun, help is available: in Ontario, ConnexOntario is at 1-866-531-2600.
+This is not betting advice. No model makes parlays safe, and every extra leg lowers the chance of a win. Bet only where it is legal for you, only if you are of legal age, and only what you can afford to lose. If gambling stops being fun, contact your local problem gambling helpline.
 
 ## License
 
