@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Parlay Lab</title>
+<style>
+:root{--bg:#0b0b0e;--card:#141418;--card2:#1c1c22;--line:#25252d;--txt:#ededf0;--mut:#85858f;--acc:#7c5cff;--g:#3fb96b;--r:#e5534b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.35;padding-bottom:calc(112px + env(safe-area-inset-bottom));font-variant-numeric:tabular-nums}
+button{font-family:inherit;color:inherit;cursor:pointer}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 16px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:10px;padding-bottom:12px}
+.logo{font-weight:700;font-size:22px;letter-spacing:-.5px;flex:1}.logo span{color:var(--acc)}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
+.pillbtn{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:14px}
+.cnt{background:var(--acc);color:#fff;border-radius:10px;font-size:12px;font-weight:600;min-width:20px;height:20px;display:grid;place-items:center;padding:0 6px}
+.subtabs{display:flex;gap:22px;overflow-x:auto;scrollbar-width:none}
+.st{background:none;border:0;padding:6px 0 11px;font-weight:600;font-size:15px;color:var(--mut);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.st.on{color:var(--txt);border-color:var(--txt)}
+main{padding:12px 12px 0;max-width:680px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.banner{display:flex;align-items:center;gap:12px;border-color:var(--acc)}
+.h{font-weight:600;font-size:15px}.mt{color:var(--mut);font-size:13px}
+.row{display:flex;align-items:center;gap:10px}.sp{flex:1;min-width:0}
+.btn{border:1px solid var(--line);background:var(--card2);border-radius:18px;padding:8px 14px;font-weight:600;font-size:13px;white-space:nowrap}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.pick{min-width:74px;text-align:center}
+.btn.wide{width:100%;padding:13px;font-size:15px;border-radius:12px}
+.x{width:40px;height:40px;border-radius:50%;border:0;background:none;color:var(--mut);display:grid;place-items:center;flex:0 0 auto}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:11px;letter-spacing:.3px;flex:0 0 auto;color:#fff}
+.nm{font-weight:600;font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.team{display:flex;align-items:center;gap:10px;padding:9px 0}
+.pct{font-weight:700;font-size:18px;min-width:46px;text-align:right}
+.dots{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.dot{width:7px;height:7px;border-radius:2px;background:var(--line)}.dot.w{background:var(--g)}.dot.l{background:var(--r)}
+.split{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line);margin:8px 0 10px}
+.split i{display:block;height:100%}
+.leg{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.leg:last-child{border:0;padding-bottom:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.stat{background:var(--card2);border-radius:12px;padding:11px 12px}.stat b{display:block;font-size:20px;font-weight:700;margin-top:2px}
+.note{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut);margin-bottom:10px}
+input,select{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:11px 13px;font:16px Inter,system-ui,sans-serif;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--acc)}
+label.f{display:block;color:var(--mut);font-size:13px;margin-top:10px}label.f select,label.f input{margin-top:6px}
+.g{color:var(--g)}.r{color:var(--r)}
+.empty{color:var(--mut);text-align:center;padding:30px 12px}
+.nav{position:fixed;left:12px;right:88px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:6;height:60px;border-radius:30px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;max-width:520px}
+.nb{background:none;border:0;width:48px;height:48px;display:grid;place-items:center;color:var(--mut)}
+.nb.on{color:var(--txt)}
+.fab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:7;width:60px;height:60px;border-radius:50%;border:0;background:var(--acc);color:#fff;display:grid;place-items:center}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--txt);color:#000;font-weight:600;font-size:13px;padding:9px 14px;border-radius:18px;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media(min-width:700px){.nav{left:50%;right:auto;transform:translateX(-50%);width:520px}.fab{right:calc(50% - 340px)}}
+.foot{color:var(--mut);font-size:12px;text-align:center;margin:18px 0 6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="logo">ParlayLab<span>.</span></div>
+    <button class="pillbtn" id="hdrSlip">Slip <span class="cnt" id="slipCnt">0</span></button>
+  </div>
+  <div class="subtabs" id="subtabs"></div>
+</header>
+<main id="main"></main>
+<nav class="nav" id="nav"></nav>
+<button class="fab" id="fab" aria-label="Auto-build parlay"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ---------- seed data (real NBA results and records as of Nov 15 2026) ----------
+// TEAMS: abbr -> [name, wins, losses, colour]
+const TEAMS={ATL:["Atlanta Hawks",8,6,"#c8102e"],BOS:["Boston Celtics",11,2,"#007a33"],BKN:["Brooklyn Nets",3,9,"#3d3d45"],CHA:["Charlotte Hornets",4,9,"#1d8cab"],CHI:["Chicago Bulls",3,9,"#ce1141"],CLE:["Cleveland Cavaliers",7,7,"#860038"],DAL:["Dallas Mavericks",7,7,"#00538c"],DEN:["Denver Nuggets",7,4,"#1d3f6e"],DET:["Detroit Pistons",8,4,"#c8102e"],GSW:["Golden State Warriors",8,5,"#1d428a"],HOU:["Houston Rockets",11,3,"#ce1141"],IND:["Indiana Pacers",5,9,"#1f3f7a"],LAC:["LA Clippers",4,8,"#c8102e"],LAL:["Los Angeles Lakers",12,2,"#552583"],MEM:["Memphis Grizzlies",9,4,"#4d6594"],MIA:["Miami Heat",7,6,"#98002e"],MIL:["Milwaukee Bucks",1,13,"#00471b"],MIN:["Minnesota Timberwolves",9,4,"#236192"],NOP:["New Orleans Pelicans",4,10,"#1b3a5f"],NYK:["New York Knicks",7,6,"#d9701c"],OKC:["Oklahoma City Thunder",9,5,"#007ac1"],ORL:["Orlando Magic",5,7,"#0077c0"],PHI:["Philadelphia 76ers",11,3,"#006bb6"],PHX:["Phoenix Suns",5,7,"#c9541a"],POR:["Portland Trail Blazers",9,3,"#c8102e"],SAC:["Sacramento Kings",1,12,"#5a2d81"],SAS:["San Antonio Spurs",12,2,"#5f6670"],TOR:["Toronto Raptors",5,8,"#ce1141"],UTA:["Utah Jazz",1,13,"#4b2a7a"],WAS:["Washington Wizards",4,10,"#c8102e"]};
+// results: [id, date, home, away, homeScore, awayScore]
+const SEED_RESULTS=[
+ ["b52d57da","2026-11-13","CHI","ATL",125,117],["89914f67","2026-11-13","MIA","CLE",133,121],["49362257","2026-11-13","HOU","UTA",125,118],["4267eeb5","2026-11-13","SAS","GSW",123,85],["e363a2cc","2026-11-13","SAC","POR",107,120],["818975f5","2026-11-13","LAC","OKC",113,112],
+ ["48baa98d","2026-11-14","NOP","DEN",108,116],["881340d0","2026-11-14","CLE","DAL",127,117],["e4bc6bca","2026-11-14","MIA","DET",137,117],["63b95b1a","2026-11-14","MIN","CHI",106,117],["61d6f5fa","2026-11-14","MEM","BKN",129,110],
+ ["921d9853","2026-11-15","PHI","IND",131,124],["76e135a8","2026-11-15","PHX","LAL",123,131],["954b3dec","2026-11-15","LAC","CHA",113,105],["9130aa45","2026-11-15","UTA","SAS",102,110],["645c0ffb","2026-11-15","TOR","NYK",108,112],["37d1bc3d","2026-11-15","BOS","DAL",131,94],["01374173","2026-11-15","WAS","HOU",119,147],["cd088d29","2026-11-15","MIL","ATL",106,113],["dd813a3b","2026-11-15","SAC","OKC",103,125]
+].map(r=>({id:r[0],d:r[1],h:r[2],a:r[3],hs:r[4],as:r[5]}));
+const SEED_SLATE={date:"Mon Nov 16",games:[
+ {a:"MEM",h:"WAS",t:"7:00 PM",wa:62,wh:38},{a:"ORL",h:"BOS",t:"7:00 PM",wa:22.7,wh:77.3},{a:"CHI",h:"CLE",t:"7:00 PM",wa:22.3,wh:77.7},
+ {a:"PHI",h:"BKN",t:"7:30 PM",wa:67.2,wh:32.8},{a:"HOU",h:"MIA",t:"7:30 PM",wa:57.6,wh:42.4},{a:"GSW",h:"NOP",t:"8:00 PM",wa:57.9,wh:42.1},
+ {a:"POR",h:"MIN",t:"8:00 PM",wa:44.1,wh:55.9},{a:"PHX",h:"DEN",t:"9:00 PM",wa:20.3,wh:79.7}]};
+
+// ---------- state ----------
+const state={view:"home",feed:"tonight",q:"",bLegs:3,bMin:60,bookOdds:"",banner:true};
+let results=[...SEED_RESULTS], slate=SEED_SLATE, rec=Object.create(null), form={}, slip=[], follows=[], built=[];
+const isTeam=t=>typeof t==="string"&&Object.prototype.hasOwnProperty.call(TEAMS,t);
+const isNum=x=>typeof x==="number"&&Number.isFinite(x);
+let live=false, net="idle", updatedAt=0;
+Object.keys(TEAMS).forEach(t=>rec[t]={w:TEAMS[t][1],l:TEAMS[t][2]});
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+slip=load("pl2_slip",[]); follows=load("pl2_follow",[]); state.banner=load("pl2_banner",true)!==false;
+if(!Array.isArray(slip))slip=[]; if(!Array.isArray(follows))follows=[];
+slip=slip.filter(l=>l&&typeof l.k==="string"&&typeof l.team==="string"&&typeof l.date==="string");
+follows=[...new Set(follows.filter(isTeam))];
+const savedSlip=slip.map(l=>({k:l.k,team:l.team,date:l.date}));
+
+// ---------- model ----------
+const HOME_EDGE=1.3; // home teams win a bit more often
+const gkey=g=>g.a+"@"+g.h;
+const findGame=k=>slate.games.find(g=>gkey(g)===k);
+const strength=t=>{const r=rec[t]||{w:0,l:0};return (r.w+3)/(r.w+r.l+6)}; // record pulled toward 50% so short seasons don't overreact
+function prob(g){ // returns chance each side wins
+  const sh=strength(g.h), sa=strength(g.a);
+  const odds=(sh/(1-sh))/(sa/(1-sa))*HOME_EDGE, model=odds/(1+odds);
+  const hasFeed=isNum(g.wh)&&isNum(g.wa)&&g.wh>=0&&g.wa>=0&&g.wh+g.wa>0;
+  const feed=hasFeed?g.wh/(g.wh+g.wa):null;
+  let p=feed==null?model:(model+feed)/2;
+  p=Math.min(.97,Math.max(.03,p));
+  return {h:p,a:1-p,model,feed};
+}
+const teamProb=(g,t)=>{const p=prob(g);return t===g.h?p.h:p.a};
+function buildForm(){
+  const F=Object.create(null);
+  [...results].sort((x,y)=>y.d.localeCompare(x.d)).forEach(r=>{
+    [[r.h,r.a,r.hs,r.as,true],[r.a,r.h,r.as,r.hs,false]].forEach(([t,o,ts,os,home])=>{(F[t]=F[t]||[]).push({w:ts>os,ts,os,opp:o,home,d:r.d})});
+  });
+  form=F;
+}
+function prune(){const seen=new Set();slip=slip.filter(l=>{const g=findGame(l.k);return g&&l.date===slate.date&&(l.team===g.h||l.team===g.a)&&!seen.has(l.k)&&seen.add(l.k)})} // does not save: the caller decides when
+const legProb=l=>{const g=findGame(l.k);return g?teamProb(g,l.team):.5};
+const slipProb=()=>slip.reduce((a,l)=>a*legProb(l),1);
+const american=pr=>!(pr>0&&pr<1)?"n/a":pr>=.5?"-"+Math.round(pr/(1-pr)*100):"+"+Math.round((1-pr)/pr*100);
+const pc=x=>Math.round(x*100)+"%";
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const tname=t=>isTeam(t)?TEAMS[t][0]:String(t);
+const recStr=t=>{const r=rec[t];return r?r.w+"-"+r.l:""};
+const norm=t=>String(t).toLowerCase().trim();
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),1500)}
+
+// ---------- icons ----------
+const I={
+ star:f=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="${f?"currentColor":"none"}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>`,
+ close:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+ home:on=>`<svg width="24" height="24" viewBox="0 0 24 24" fill="${on?"currentColor":"none"}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>`,
+ search:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`,
+ info:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`,
+ ticket:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 9V6a1 1 0 011-1h16a1 1 0 011 1v3a3 3 0 000 6v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a3 3 0 000-6z"/></svg>`
+};
+const av=t=>`<div class="av" style="background:${isTeam(t)?TEAMS[t][3]:"#3d3d45"}">${esc(t)}</div>`;
+const dots=t=>{const f=(form[t]||[]).slice(0,5).reverse();return f.length?`<span class="dots" role="img" aria-label="Recent results: ${f.map(x=>x.w?"W":"L").join(" ")}">${f.map(x=>`<span class="dot ${x.w?"w":"l"}" title="${x.w?"W":"L"} ${x.ts}-${x.os} ${x.home?"vs":"at"} ${esc(x.opp)}"></span>`).join("")}</span>`:""};
+
+// ---------- views ----------
+const $=id=>document.getElementById(id), main=$("main");
+
+function renderHeader(){
+  $("slipCnt").textContent=slip.length;
+  const st=$("subtabs");
+  if(state.view!=="home"){st.innerHTML="";st.style.display="none";return}
+  st.style.display="flex";
+  st.innerHTML=[["tonight","Games"],["best","Best bets"],["following","Following"]].map(([f,l])=>`<button class="st ${state.feed===f?"on":""}" data-feed="${f}" aria-pressed="${state.feed===f}">${l}</button>`).join("");
+}
+
+function statusText(g){return g.state==="post"?(isNum(g.hs)&&isNum(g.as)?`Final ${g.a} ${g.as}, ${g.h} ${g.hs}`:"Final"):g.state==="in"?"In progress":g.t}
+function gameCard(g){
+  const p=prob(g), k=gkey(g), leg=slip.find(l=>l.k===k), fav=p.h>=p.a?g.h:g.a, open=!g.state||g.state==="pre";
+  const side=(t,pr,where)=>{const on=leg&&leg.team===t;return `<div class="team">${av(t)}
+    <div class="sp"><div class="nm">${esc(tname(t))}</div><div class="mt">${recStr(t)} · ${where}${dots(t)}</div></div>
+    <div class="pct">${pc(pr)}</div>
+    ${open||on?`<button class="btn pick ${on?"pri":""}" data-a="pick" data-k="${esc(k)}" data-t="${esc(t)}" aria-pressed="${on?"true":"false"}" aria-label="Pick ${esc(tname(t))} to win">${on?"Picked":"Pick"}</button>`:""}</div>`};
+  return `<div class="card">
+   <div class="row"><div class="mt sp">${esc(statusText(g))}</div><div class="mt">${open?"Lean "+esc(fav)+" "+pc(Math.max(p.h,p.a)):"Pre-game estimate"}</div></div>
+   ${side(g.a,p.a,"Away")}${side(g.h,p.h,"Home")}
+   <div class="split"><i style="width:${(p.a*100).toFixed(1)}%;background:${leg&&leg.team===g.a?"var(--acc)":"#5a5a66"}"></i><i style="width:${(p.h*100).toFixed(1)}%;background:${leg&&leg.team===g.h?"var(--acc)":"#34343d"}"></i></div>
+   <div class="mt">Home side: record model ${pc(p.model)}${p.feed!=null?" · sportsbook line "+pc(p.feed):""} · fair odds ${american(p.h)}</div></div>`;
+}
+function statusLine(n){
+  const when=updatedAt?new Date(updatedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+  const tail=net==="loading"?"updating":net==="fail"?(live||updatedAt?"offline, showing saved data":"offline, showing built-in sample"):when?"updated "+when:"";
+  return `<div class="row" style="margin:2px 2px 10px"><div class="mt sp">${esc(slate.date)} · ${n} game${n===1?"":"s"}${tail?" · "+esc(tail):""}</div>${net!=="loading"?`<button class="btn" data-a="refresh">Refresh</button>`:""}</div>`;
+}
+function renderHome(){
+  let list=[...slate.games];
+  if(state.feed==="best") list.sort((x,y)=>{const a=prob(x),b=prob(y);return Math.max(b.h,b.a)-Math.max(a.h,a.a)});
+  if(state.feed==="following") list=list.filter(g=>follows.includes(g.h)||follows.includes(g.a));
+  const banner=state.banner&&state.feed!=="following"&&autobuild().length>=2?`<div class="card banner"><div class="sp"><div class="h">A parlay is ready</div><div class="mt">The model's strongest picks from this slate</div></div><button class="btn pri" data-a="openbuild">Open</button><button class="x" data-a="closebanner" aria-label="Dismiss">${I.close}</button></div>`:"";
+  const empty=state.feed==="following"?(follows.length?"None of the teams you follow are on this slate.":"Follow teams from the Teams tab to see their games here."):"No games on this slate.";
+  main.innerHTML=banner+statusLine(list.length)+
+   (list.length?list.map(gameCard).join(""):`<div class="empty">${empty}</div>`)+
+   `<div class="foot">Win chance blends each team's record with the sportsbook line when one is posted. Squares show the last few results, oldest to newest.</div>`;
+}
+
+function renderTeams(){
+  main.innerHTML=`<input id="q" aria-label="Search teams" placeholder="Search teams" value="${esc(state.q)}" autocomplete="off" style="margin-bottom:10px"><div id="res"></div>`;
+  const draw=()=>{
+    const q=norm(state.q);
+    const list=Object.keys(TEAMS).filter(t=>!q||norm(tname(t)).includes(q)||norm(t).includes(q)).sort((x,y)=>strength(y)-strength(x));
+    $("res").innerHTML=list.length?`<div class="card">${list.map(t=>{
+      const g=slate.games.find(x=>x.h===t||x.a===t), last=(form[t]||[])[0], fol=follows.includes(t);
+      const sub=g?`Next: ${g.h===t?"vs "+esc(g.a):"at "+esc(g.h)} · ${pc(teamProb(g,t))}`:last?`Last: ${last.w?"W":"L"} ${last.ts}-${last.os} ${last.home?"vs":"at"} ${esc(last.opp)}`:"No recent games logged";
+      return `<div class="leg">${av(t)}<div class="sp"><div class="nm">${esc(tname(t))}</div><div class="mt">${recStr(t)}${dots(t)}</div><div class="mt">${sub}</div></div>
+       <button class="x" style="color:${fol?"var(--acc)":"var(--mut)"}" data-a="follow" data-t="${esc(t)}" aria-pressed="${fol?"true":"false"}" aria-label="${fol?"Unfollow":"Follow"} ${esc(tname(t))}">${I.star(fol)}</button></div>`}).join("")}</div>`:`<div class="empty">No teams match.</div>`;
+  };
+  $("q").oninput=e=>{state.q=e.target.value;draw()}; draw();
+}
+
+function autobuild(){
+  const c=slate.games.filter(g=>!g.state||g.state==="pre").map(g=>{const p=prob(g);const t=p.h>=p.a?g.h:g.a;return{k:gkey(g),team:t,pr:Math.max(p.h,p.a),g}})
+    .filter(x=>Math.round(x.pr*100)>=state.bMin).sort((a,b)=>b.pr-a.pr);
+  return c.slice(0,state.bLegs);
+}
+function renderBuild(){
+  built=autobuild(); const pr=built.reduce((a,l)=>a*l.pr,1);
+  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">Auto-build</div><div class="mt" style="margin-top:4px">Takes the most likely winners on this slate, one per game.</div>
+   <div class="grid"><label class="f">Legs<select id="bl">${[2,3,4,5,6].map(n=>`<option value="${n}" ${n===state.bLegs?"selected":""}>${n}</option>`).join("")}</select></label>
+   <label class="f">Min win chance<select id="bm">${[55,60,65,70,75].map(n=>`<option value="${n}" ${n===state.bMin?"selected":""}>${n}%</option>`).join("")}</select></label></div></div>
+   <div class="card">${built.length?built.map(l=>`<div class="leg">${av(l.team)}<div class="sp"><div class="nm">${esc(tname(l.team))} to win</div><div class="mt">${l.team===l.g.h?"vs "+esc(l.g.a):"at "+esc(l.g.h)} · ${esc(l.g.t)}</div></div><b>${pc(l.pr)}</b></div>`).join(""):`<div class="empty">${slate.games.length?"No games clear that win chance. Lower the minimum.":"No games on this slate."}</div>`}
+   ${built.length>=2?`<div class="grid"><div class="stat"><span class="mt">Chance all hit</span><b>${pc(pr)}</b></div><div class="stat"><span class="mt">Fair odds</span><b>${american(pr)}</b></div></div>
+   <button class="btn pri wide" style="margin-top:12px" data-a="usebuilt">Replace my slip with these</button>`:""}</div>
+   ${built.length&&built.length<state.bLegs?`<div class="note">Only ${built.length} game${built.length===1?"":"s"} cleared ${state.bMin}%.${built.length<2?" A parlay needs at least 2.":""}${slate.games.length>built.length?" Lower the minimum for more legs.":""}</div>`:""}
+   <div class="note">Every extra leg lowers the chance the whole parlay hits. Favourites lose often.</div>`;
+  $("bl").onchange=e=>{state.bLegs=+e.target.value;renderBuild()};
+  $("bm").onchange=e=>{state.bMin=+e.target.value;renderBuild()};
+}
+
+function edgeHTML(pr){
+  const raw=String(state.bookOdds).trim(); if(!raw||!slip.length)return "";
+  const m=raw.replace(/[−–—]/g,"-").match(/^[+-]?\d+(\.\d+)?$/), bo=m?parseFloat(m[0]):NaN;
+  if(!(Number.isFinite(bo)&&Math.abs(bo)>=100))return `<div class="mt" style="margin-top:8px">Enter American odds, for example +450 or -120.</div>`;
+  const imp=bo>0?100/(bo+100):-bo/(-bo+100), ev=pr*(bo>0?bo/100:100/-bo)-(1-pr), v=Math.round(ev*1000)/100;
+  return `<div class="stat" style="margin-top:8px"><span class="mt">Book implies ${pc(imp)} · expected return per $10</span><b class="${v>0?"g":v<0?"r":""}">${v>0?"+":v<0?"-":""}$${Math.abs(v).toFixed(2)}</b></div>`;
+}
+function renderSlip(){
+  const pr=slipProb();
+  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">My slip</div>${slip.length?slip.map(l=>{const g=findGame(l.k);return `<div class="leg">${av(l.team)}<div class="sp"><div class="nm">${esc(tname(l.team))} to win</div><div class="mt">${g?(l.team===g.h?"vs "+esc(g.a):"at "+esc(g.h))+" · "+esc(g.t):""}</div></div><b>${pc(legProb(l))}</b><button class="x" data-a="rm" data-k="${esc(l.k)}" aria-label="Remove">${I.close}</button></div>`}).join(""):`<div class="empty">No picks yet. Pick a winner on any game, or use the plus button to auto-build.</div>`}</div>
+   ${slip.length?`<div class="card"><div class="grid" style="margin-top:0"><div class="stat"><span class="mt">Chance all hit</span><b>${pc(pr)}</b></div><div class="stat"><span class="mt">Fair odds</span><b>${american(pr)}</b></div></div><div id="edge">${edgeHTML(pr)}</div>
+     <label class="f">Your sportsbook's odds for this parlay<input id="bo" aria-label="Sportsbook odds" placeholder="e.g. +450" value="${esc(state.bookOdds)}" autocomplete="off"></label>
+     <div class="row" style="margin-top:12px"><button class="btn wide" data-a="copy">Copy slip</button><button class="btn wide" data-a="clear">Clear</button></div></div>
+     <div class="note">If the book's odds pay more than the fair odds, the bet is priced in your favour by this model. The model is simple and can be wrong.</div>`:""}`;
+  const b=$("bo");if(b)b.oninput=e=>{state.bookOdds=e.target.value;$("edge").innerHTML=edgeHTML(slipProb())};
+}
+
+function renderMe(){
+  const dates=results.map(r=>r.d).sort();
+  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">Data</div>
+   <div class="grid"><div class="stat"><span class="mt">Results logged</span><b>${results.length}</b></div><div class="stat"><span class="mt">Games on slate</span><b>${slate.games.length}</b></div>
+   <div class="stat"><span class="mt">Teams followed</span><b>${follows.length}</b></div><div class="stat"><span class="mt">Results range</span><b style="font-size:15px">${dates.length?dates[0].slice(5)+" to "+dates[dates.length-1].slice(5):"n/a"}</b></div></div>
+   ${!state.banner?`<button class="btn wide" style="margin-top:12px" data-a="showbanner">Show the parlay banner</button>`:""}</div>
+   <div class="note">How it works: each team's win-loss record is turned into a strength rating, the home team gets a small boost, and the result is averaged with the sportsbook's line when one is posted.</div>
+   <div class="note">Schedules, scores and records load from ESPN's public data whenever the app is open, and refresh every few minutes. Nothing needs to be updated by hand.</div>
+   <div class="note">No model makes parlays safe. Keep stakes small.</div>`;
+}
+
+function renderNav(){
+  const v=state.view, b=(k,label,icon)=>`<button class="nb ${v===k?"on":""}" data-nav="${k}" aria-label="${label}"${v===k?' aria-current="page"':""}>${icon}</button>`;
+  $("nav").innerHTML=b("home","Games",I.home(v==="home"))+b("teams","Teams",I.search)+b("slip","Slip",I.ticket)+b("me","About the data",I.info);
+}
+const VIEWS={home:renderHome,build:renderBuild,teams:renderTeams,slip:renderSlip,me:renderMe};
+function render(){(VIEWS[state.view]||renderHome)();renderHeader();renderNav()}
+function go(v){if(v!=="teams")state.q="";state.view=v;render();try{window.scrollTo(0,0)}catch(e){}}
+
+// ---------- actions (one delegated handler) ----------
+function pick(k,t){
+  const g=findGame(k); if(!g||(t!==g.h&&t!==g.a))return;
+  const i=slip.findIndex(l=>l.k===k);
+  if(g.state&&g.state!=="pre"&&!(i>=0&&slip[i].team===t)){toast("That game has already started");return}
+  if(i>=0&&slip[i].team===t){slip.splice(i,1);toast("Removed from slip")}
+  else if(i>=0){slip[i].team=t;toast("Switched to "+t)}
+  else{slip.push({k,team:t,date:slate.date});toast("Added "+t+" to slip")}
+  store("pl2_slip",slip);
+}
+async function copySlip(btn){
+  const pr=slipProb(), t=slip.map(l=>`${tname(l.team)} to win`).join("\n")+`\nEst. ${pc(pr)} (fair ${american(pr)})`;
+  try{await navigator.clipboard.writeText(t);btn.textContent="Copied";return}catch(e){}
+  try{const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();const ok=document.execCommand("copy");ta.remove();if(ok){btn.textContent="Copied";return}}catch(e){}
+  if(!$("copyout"))btn.parentNode.insertAdjacentHTML("afterend",`<textarea id="copyout" readonly rows="${slip.length+1}" style="width:100%;margin-top:10px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:10px;font:14px Inter,system-ui,sans-serif">${esc(t)}</textarea>`);
+  btn.textContent="Copy from below";
+}
+document.addEventListener("click",e=>{
+  const el=e.target.closest?e.target:e.target.parentElement; if(!el)return;
+  const nav=el.closest("[data-nav]"); if(nav){go(nav.dataset.nav);return}
+  const fd=el.closest("[data-feed]"); if(fd){state.feed=fd.dataset.feed;render();return}
+  const b=el.closest("[data-a]"); if(!b)return;
+  const a=b.dataset.a;
+  if(a==="pick"){pick(b.dataset.k,b.dataset.t);render()}
+  else if(a==="follow"){const t=b.dataset.t;if(!isTeam(t))return;const i=follows.indexOf(t);if(i>=0){follows.splice(i,1);toast("Unfollowed "+t)}else{follows.push(t);toast("Following "+t)}store("pl2_follow",follows);render()}
+  else if(a==="openbuild"){go("build")}
+  else if(a==="closebanner"){state.banner=false;store("pl2_banner",false);render()}
+  else if(a==="showbanner"){state.banner=true;store("pl2_banner",true);render()}
+  else if(a==="usebuilt"){if(built.length<2)return;slip=built.map(x=>({k:x.k,team:x.team,date:slate.date}));state.bookOdds="";store("pl2_slip",slip);toast(`Slip set to ${slip.length} picks`);go("slip")}
+  else if(a==="rm"){const i=slip.findIndex(l=>l.k===b.dataset.k);if(i>=0){slip.splice(i,1);store("pl2_slip",slip)}render()}
+  else if(a==="clear"){slip=[];state.bookOdds="";store("pl2_slip",slip);render()}
+  else if(a==="copy"){copySlip(b)}
+  else if(a==="refresh"){refresh(true)}
+});
+$("hdrSlip").onclick=()=>go("slip");
+$("fab").onclick=()=>go("build");
+
+// ---------- saved data from the last successful update ----------
+(function(){const c=load("pl3_cache",null); if(!c||typeof c!=="object")return;
+  try{
+    if(c.rec&&typeof c.rec==="object")Object.keys(c.rec).forEach(t=>{const x=c.rec[t];if(isTeam(t)&&x&&Number.isInteger(x.w)&&Number.isInteger(x.l)&&x.w>=0&&x.l>=0)rec[t]={w:x.w,l:x.l}});
+    if(Array.isArray(c.results)){const have=new Set(results.map(r=>r.id));c.results.forEach(r=>{const v=cleanResult(r);if(v&&!have.has(v.id)){results.push(v);have.add(v.id)}})}
+    const sl=cleanSlate(c.slate); if(sl){slate=sl;live=true}
+    if(isNum(c.updatedAt))updatedAt=c.updatedAt;
+  }catch(e){}
+})();
+function cleanResult(r){return r&&typeof r.id==="string"&&typeof r.d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(r.d)&&isTeam(r.h)&&isTeam(r.a)&&r.h!==r.a&&isNum(r.hs)&&isNum(r.as)&&r.hs>=0&&r.as>=0&&r.hs!==r.as?{id:r.id,d:r.d,h:r.h,a:r.a,hs:r.hs,as:r.as}:null}
+function cleanSlate(sd){
+  if(!sd||!Array.isArray(sd.games)||typeof sd.date!=="string"||!sd.date.trim())return null;
+  const seen=new Set();
+  const gs=sd.games.filter(x=>x&&isTeam(x.a)&&isTeam(x.h)&&x.a!==x.h&&!seen.has(x.a+"@"+x.h)&&seen.add(x.a+"@"+x.h)).map(x=>({a:x.a,h:x.h,t:typeof x.t==="string"?x.t:"",wa:isNum(x.wa)?x.wa:null,wh:isNum(x.wh)?x.wh:null,state:x.state==="in"||x.state==="post"?x.state:"pre",hs:isNum(x.hs)?x.hs:null,as:isNum(x.as)?x.as:null}));
+  return {date:sd.date.trim(),games:gs};
+}
+buildForm();prune();
+const dropped=savedSlip.filter(sv=>!slip.some(l=>l.k===sv.k)); // saved picks that are not on the slate shown at startup
+let restored=false;
+render();
+
+// ---------- live data: schedule, scores and records come straight from ESPN's public feed ----------
+const ESPN="https://site.api.espn.com/apis";
+const ALIAS={GS:"GSW",NO:"NOP",NY:"NYK",SA:"SAS",UTAH:"UTA",WSH:"WAS"};
+const code=x=>{const t=typeof x==="string"?(ALIAS[x]||x):"";return isTeam(t)?t:null};
+const etDay=d=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+const dayShift=(iso,n)=>{const d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const dayLabel=iso=>new Date(iso+"T12:00:00Z").toLocaleDateString("en-US",{timeZone:"UTC",weekday:"short",month:"short",day:"numeric"}).replace(/,/g,"");
+async function getJSON(u){const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(t)}}
+const board=iso=>getJSON(`${ESPN}/site/v2/sports/basketball/nba/scoreboard?dates=${iso.replace(/-/g,"")}`);
+function moneyline(c){ // sportsbook line turned into a win chance for each side, when ESPN includes one
+  const o=Array.isArray(c.odds)?c.odds[0]:null; if(!o)return null;
+  const num=(...v)=>{for(const x of v){const n=typeof x==="number"?x:typeof x==="string"?parseFloat(x.replace(/−/g,"-")):NaN;if(Number.isFinite(n)&&Math.abs(n)>=100)return n}return null};
+  const deep=(side)=>{const m=o.moneyline&&o.moneyline[side];return m?[m.close&&m.close.odds,m.open&&m.open.odds]:[]};
+  const hm=num(o.homeTeamOdds&&o.homeTeamOdds.moneyLine,...deep("home")), am=num(o.awayTeamOdds&&o.awayTeamOdds.moneyLine,...deep("away"));
+  if(hm==null||am==null)return null;
+  const imp=x=>x>0?100/(x+100):-x/(-x+100), ph=imp(hm), pa=imp(am);
+  return {wh:ph/(ph+pa)*100,wa:pa/(ph+pa)*100};
+}
+function parseBoard(j,iso){
+  const out=[];
+  (j&&Array.isArray(j.events)?j.events:[]).forEach(ev=>{try{
+    const c=ev.competitions[0], H=c.competitors.find(x=>x.homeAway==="home"), A=c.competitors.find(x=>x.homeAway==="away");
+    const h=code(H.team.abbreviation), a=code(A.team.abbreviation); if(!h||!a||h===a)return;
+    const st=(ev.status&&ev.status.type)||{}, nm=String(st.name||"");
+    if(/POSTPONED|CANCEL/i.test(nm))return;
+    const state=st.completed===true||st.state==="post"?"post":st.state==="in"?"in":"pre";
+    const hs=parseInt(H.score,10), as=parseInt(A.score,10), when=new Date(ev.date);
+    const recOf=x=>{const r=Array.isArray(x.records)?x.records.find(y=>y&&y.type==="total"):null, m=r&&/^(\d+)-(\d+)$/.exec(String(r.summary||""));return m?{w:+m[1],l:+m[2]}:null};
+    const ml=state==="pre"?moneyline(c):null;
+    out.push({id:String(ev.id),d:iso,h,a,state,done:st.completed===true,hs:Number.isFinite(hs)?hs:null,as:Number.isFinite(as)?as:null,
+      t:isNaN(when)?"":when.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),wa:ml?ml.wa:null,wh:ml?ml.wh:null,rh:recOf(H),ra:recOf(A)});
+  }catch(e){}});
+  return out;
+}
+let busy=false, doneDays=load("pl3_days",{}); if(!doneDays||typeof doneDays!=="object"||Array.isArray(doneDays))doneDays={};
+async function refresh(manual){
+  if(busy)return; busy=true; net="loading"; softRender();
+  try{
+    const today=etDay(new Date());
+    // 1. the slate: the first day from today that still has a game to play
+    let sl=null, first=null;
+    for(let i=0;i<5&&!sl;i++){const iso=dayShift(today,i), g=parseBoard(await board(iso),iso); if(i===0)first=g; if(g.some(x=>x.state!=="post"))sl={iso,games:g}}
+    if(!sl)sl={iso:today,games:first||[]};
+    // 2. recent results: the last 7 days, skipping days already fully saved
+    const need=[];for(let i=1;i<=7;i++){const iso=dayShift(today,-i);if(!doneDays[iso])need.push(iso)}
+    const past=await Promise.allSettled(need.map(iso=>board(iso).then(j=>({iso,g:parseBoard(j,iso)}))));
+    const have=new Set(results.map(r=>r.id)), sig=r=>r.d+r.h+r.a, haveSig=new Set(results.map(sig));
+    const add=g=>{if(g.done){const v=cleanResult({id:g.id,d:g.d,h:g.h,a:g.a,hs:g.hs,as:g.as});if(v&&!have.has(v.id)&&!haveSig.has(sig(v))){results.push(v);have.add(v.id);haveSig.add(sig(v))}}};
+    past.forEach(p=>{if(p.status==="fulfilled"){p.value.g.forEach(add);if(p.value.g.every(x=>x.done))doneDays[p.value.iso]=1}});
+    (first||[]).forEach(add); sl.games.forEach(add);
+    // 3. records: league standings, then anything newer printed on the scoreboard
+    try{const s=await getJSON(`${ESPN}/v2/sports/basketball/nba/standings`);
+      (Array.isArray(s.children)?s.children:[]).forEach(ch=>((ch.standings&&ch.standings.entries)||[]).forEach(e=>{try{
+        const t=code(e.team.abbreviation), val=n=>{const x=e.stats.find(y=>y&&y.name===n);return x?Math.round(x.value):NaN}, w=val("wins"), l=val("losses");
+        if(t&&Number.isInteger(w)&&Number.isInteger(l)&&w>=0&&l>=0&&w+l<=82&&w+l>=rec[t].w+rec[t].l)rec[t]={w,l};
+      }catch(err){}}));
+    }catch(err){}
+    const bump=(t,r)=>{if(r&&r.w+r.l<=82&&r.w+r.l>=rec[t].w+rec[t].l)rec[t]=r};
+    [...(first||[]),...sl.games].forEach(g=>{bump(g.h,g.rh);bump(g.a,g.ra)});
+    // 4. swap in the new slate
+    const next=cleanSlate({date:dayLabel(sl.iso),games:sl.games});
+    if(next){slate=next;live=true}
+    results.sort((x,y)=>y.d.localeCompare(x.d)); if(results.length>400)results.length=400;
+    updatedAt=Date.now(); net="ok";
+    buildForm(); prune();
+    if(!restored){restored=true;dropped.forEach(sv=>{if(!slip.some(l=>l.k===sv.k))slip.push(sv)});prune()}
+    store("pl2_slip",slip); store("pl3_days",doneDays);
+    store("pl3_cache",{slate,rec:Object.assign({},rec),results,updatedAt});
+    if(manual)toast("Updated");
+  }catch(e){net="fail";if(manual)toast("Could not reach the data source")}
+  busy=false; softRender();
+}
+function softRender(){const ae=document.activeElement;if(ae&&ae.tagName==="INPUT"){renderHeader()}else{render()}} // never rebuild a box someone is typing in
+refresh(false);
+setInterval(()=>{if(!document.hidden)refresh(false)},5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-updatedAt>2*60*1000)refresh(false)});
+</script>
+</body>
+</html>
