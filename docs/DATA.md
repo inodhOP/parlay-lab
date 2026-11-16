@@ -16,9 +16,9 @@ These are the same public endpoints ESPN's own pages use. They need no key, and 
 
 On load, every five minutes while the tab is visible, and when the tab becomes visible again after more than two minutes:
 
-1. **Slate.** Starting from today in US Eastern time, the first day that still has a game to play becomes the slate. Up to five days ahead are checked.
+1. **Slate.** If one of last night's games is still being played, last night stays as the slate. Otherwise, starting from today in US Eastern time, the first day that still has a game to play becomes the slate. Up to five days ahead are checked.
 2. **Results.** The previous seven days are requested. A day is remembered as complete once all its games are final, and is not requested again.
-3. **Records.** Standings are read, then overridden by any newer record printed on the scoreboard, since the standings table can lag.
+3. **Records.** Standings are read, then overridden by any newer record printed on the scoreboard, since the standings table can lag. When the feed reports a new season, all records start again from zero.
 4. **Save.** The slate, records, results and update time are written to local storage.
 
 Each request times out after twelve seconds.
@@ -46,7 +46,6 @@ Feed data is treated as untrusted:
 | `pl2_follow` | Teams you follow |
 | `pl2_banner` | Whether the parlay banner is dismissed |
 | `pl3_odds` | The odds you typed for each pick |
-| `pl3_cache` | Last slate, records, results and update time |
-| `pl3_days` | Past days already fully loaded |
+| `pl3_cache` | Last slate, records, results, season, update time, and which past days are fully loaded |
 
 Clearing site data for the page resets everything.

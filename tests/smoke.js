@@ -32,6 +32,12 @@ function boards(mode) {
       [day(1)]: [event("n1", soon(24), "pre", ["MIA", "7-6"], ["HOU", "11-3"], 0, 0)],
     };
   }
+  if (mode === "late") {
+    return {
+      [day(-1)]: [event("l1", soon(-3), "in", ["LAL", "12-2"], ["CHA", "4-9"], 88, 80), event("l2", soon(-6), "post", ["TOR", "5-9"], ["NY", "8-6"], 101, 110)],
+      [day(0)]: [event("t9", soon(18), "pre", ["MIA", "7-6"], ["HOU", "11-3"], 0, 0)],
+    };
+  }
   return {
     [day(0)]: [
       event("t1", soon(1), "pre", ["GS", "8-5"], ["NY", "7-6"], 0, 0, [-180, 150]),
@@ -123,6 +129,13 @@ const text = (page) => page.evaluate(() => document.querySelector("#main").inner
   check(!/NaN|undefined|Infinity/.test(t), "no broken numbers on the slip");
   await boxes.first().fill("abc");
   check(/Use American odds/.test(await text(page)), "invalid odds show a hint");
+  await boxes.first().fill("200");
+  check(/Include the \+ or -/.test(await text(page)), "odds without a sign are not guessed");
+  await boxes.first().fill("-200");
+  await page.locator("#stake").fill("0");
+  t = await text(page);
+  check(/Enter a bet amount/.test(t) && !/\$0\.00 wins/.test(t), "a zero bet asks for an amount");
+  await page.locator("#stake").fill("25");
   check((await page.locator('a[href="https://sportsbook.fanduel.com/"]').count()) === 1, "FanDuel link is present");
 
   for (const view of ["teams", "me", "home"]) await page.locator(`[data-nav=${view}]`).click();
@@ -153,6 +166,14 @@ const text = (page) => page.evaluate(() => document.querySelector("#main").inner
   t = await text(page);
   check(t.includes("Miami Heat") && t.includes("Houston Rockets") && !t.includes("Boston Celtics"), "slate rolls to the next day once today is finished");
   check(errors.length === 0, "no script errors on rollover", errors);
+  await ctx.close();
+
+  // --- after midnight with a late game still going: last night's slate stays -
+  mode = { current: "late" };
+  ({ page, ctx, errors } = await open(browser, mode));
+  t = await text(page);
+  check(t.includes("Los Angeles Lakers") && /In progress/.test(t) && !t.includes("Miami Heat"), "last night's slate stays while a late game is in progress");
+  check(errors.length === 0, "no script errors with a late game", errors);
   await ctx.close();
 
   await browser.close();

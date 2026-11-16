@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.1 (2026-11-16)
+
+Fixes from a full code review.
+
+- Last night's slate, and any picks on it, now stay up after midnight Eastern while a late game is still being played.
+- Odds you type belong to one pick on one day, so they no longer carry over when you switch sides or the same matchup appears again.
+- Odds must include a plus or minus sign, so `150` is no longer guessed to be `+150`.
+- A zero or empty bet amount asks for an amount, and comma decimals such as `12,50` are accepted.
+- The pre-game moneyline is kept once a game tips off, so win chances do not jump at tip-off.
+- Team records reset correctly when a new season starts.
+- Tip-off times show their time zone.
+- The five-minute refresh no longer closes an open dropdown or clears copied slip text.
+- An even-money line is read correctly.
+- The Teams screen shows live and final games as such.
+
 ## 1.0.0 (2026-11-16)
 
 First public version.
