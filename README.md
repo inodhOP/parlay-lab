@@ -41,7 +41,7 @@ It runs entirely in the browser. There is no server, no account and nothing to m
 3. Enter the amount you want to bet. The slip shows FanDuel's parlay odds, what you would win, and the total you would get back.
 4. Compare **Fair odds** with **FanDuel parlay odds**. If FanDuel pays more than the fair odds, the expected return is positive by this model.
 
-Games that have started show their status and cannot be added to a slip.
+Games that have started show the live score and cannot be added to a slip. Once every game of the day has started, the app moves on to the next day's games and keeps the current day underneath as "live and final". Picks you already made stay on your slip and show Won or Lost when the game ends.
 
 ## How the numbers work
 

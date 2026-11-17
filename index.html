@@ -107,7 +107,7 @@ const state={view:"home",feed:"tonight",q:"",bLegs:3,bMin:60,stake:"10",banner:t
 let legOdds=Object.create(null);
 const SLUG={GSW:"gs",NOP:"no",NYK:"ny",SAS:"sa",UTA:"utah",WAS:"wsh"}; // ESPN image names that differ from the team code
 const logoURL=t=>`https://a.espncdn.com/i/teamlogos/nba/500-dark/scoreboard/${SLUG[t]||t.toLowerCase()}.png`;
-let results=[...SEED_RESULTS], slate=SEED_SLATE, rec=Object.create(null), form={}, slip=[], follows=[], built=[];
+let results=[...SEED_RESULTS], slate=SEED_SLATE, prev=null, rec=Object.create(null), form={}, slip=[], follows=[], built=[];
 const isTeam=t=>typeof t==="string"&&Object.prototype.hasOwnProperty.call(TEAMS,t);
 const isNum=x=>typeof x==="number"&&Number.isFinite(x);
 let live=false, net="idle", updatedAt=0, season=2027, doneDays={};
@@ -124,6 +124,7 @@ const savedSlip=slip.map(l=>({k:l.k,team:l.team,date:l.date}));
 const HOME_EDGE=1.3; // home teams win a bit more often
 const gkey=g=>g.a+"@"+g.h;
 const findGame=k=>slate.games.find(g=>gkey(g)===k);
+const legGame=l=>l.date===slate.date?findGame(l.k):(prev&&l.date===prev.date?prev.games.find(g=>gkey(g)===l.k):undefined); // a pick lives on the upcoming slate or on the day just played
 const strength=t=>{const r=rec[t]||{w:0,l:0};return (r.w+3)/(r.w+r.l+6)}; // record pulled toward 50% so short seasons don't overreact
 function prob(g){ // returns chance each side wins
   const sh=strength(g.h), sa=strength(g.a);
@@ -142,8 +143,8 @@ function buildForm(){
   });
   form=F;
 }
-function prune(){const seen=new Set();slip=slip.filter(l=>{const g=findGame(l.k);return g&&l.date===slate.date&&(l.team===g.h||l.team===g.a)&&!seen.has(l.k)&&seen.add(l.k)})} // does not save: the caller decides when
-const legProb=l=>{const g=findGame(l.k);return g?teamProb(g,l.team):.5};
+function prune(){const seen=new Set();slip=slip.filter(l=>{const g=legGame(l), id=l.k+"|"+l.date;return g&&(l.team===g.h||l.team===g.a)&&!seen.has(id)&&seen.add(id)})} // does not save: the caller decides when
+const legProb=l=>{const g=legGame(l);return g?teamProb(g,l.team):.5};
 const slipProb=()=>slip.reduce((a,l)=>a*legProb(l),1);
 const american=pr=>!(pr>0&&pr<1)?"n/a":pr>=.5?"-"+Math.round(pr/(1-pr)*100):"+"+Math.round((1-pr)/pr*100);
 const pc=x=>Math.round(x*100)+"%";
@@ -177,13 +178,16 @@ function renderHeader(){
   st.innerHTML=[["tonight","Games"],["best","Best bets"],["following","Following"]].map(([f,l])=>`<button class="st ${state.feed===f?"on":""}" data-feed="${f}" aria-pressed="${state.feed===f}">${l}</button>`).join("");
 }
 
-function statusText(g){return g.state==="post"?(isNum(g.hs)&&isNum(g.as)?`Final ${g.a} ${g.as}, ${g.h} ${g.hs}`:"Final"):g.state==="in"?"In progress":g.t}
-function gameCard(g){
-  const p=prob(g), k=gkey(g), leg=slip.find(l=>l.k===k), fav=p.h>=p.a?g.h:g.a, open=!g.state||g.state==="pre";
+function statusText(g){
+  const score=isNum(g.hs)&&isNum(g.as)?`${g.a} ${g.as}, ${g.h} ${g.hs}`:"";
+  return g.state==="post"?(score?"Final · "+score:"Final"):g.state==="in"?"Live"+(score?" · "+score:"")+(g.detail?" · "+g.detail:""):g.t;
+}
+function gameCard(g,date){
+  const cur=!date||date===slate.date, p=prob(g), k=gkey(g), leg=slip.find(l=>l.k===k&&l.date===(date||slate.date)), fav=p.h>=p.a?g.h:g.a, open=!g.state||g.state==="pre";
   const side=(t,pr,where)=>{const on=leg&&leg.team===t;return `<div class="team">${av(t)}
     <div class="sp"><div class="nm">${esc(tname(t))}</div><div class="mt">${recStr(t)} · ${where}${dots(t)}</div></div>
     <div class="pct">${pc(pr)}</div>
-    ${open||on?`<button class="btn pick ${on?"pri":""}" data-a="pick" data-k="${esc(k)}" data-t="${esc(t)}" aria-pressed="${on?"true":"false"}" aria-label="Pick ${esc(tname(t))} to win">${on?"Picked":"Pick"}</button>`:""}</div>`};
+    ${on&&!cur?`<span class="btn pick pri">Picked</span>`:open||on?`<button class="btn pick ${on?"pri":""}" data-a="pick" data-k="${esc(k)}" data-t="${esc(t)}" aria-pressed="${on?"true":"false"}" aria-label="Pick ${esc(tname(t))} to win">${on?"Picked":"Pick"}</button>`:""}</div>`};
   return `<div class="card">
    <div class="row"><div class="mt sp">${esc(statusText(g))}</div><div class="mt">${open?"Lean "+esc(fav)+" "+pc(Math.max(p.h,p.a)):"Pre-game estimate"}</div></div>
    ${side(g.a,p.a,"Away")}${side(g.h,p.h,"Home")}
@@ -203,7 +207,8 @@ function renderHome(){
   const banner=state.banner&&state.feed!=="following"&&autobuild().length>=2?`<div class="card banner"><div class="sp"><div class="h">A parlay is ready</div><div class="mt">The model's strongest picks from this slate</div></div><button class="btn pri" data-a="openbuild">Open</button><button class="x" data-a="closebanner" aria-label="Dismiss">${I.close}</button></div>`:"";
   const empty=state.feed==="following"?(follows.length?"None of the teams you follow are on this slate.":"Follow teams from the Teams tab to see their games here."):"No games on this slate.";
   main.innerHTML=banner+statusLine(list.length)+
-   (list.length?list.map(gameCard).join(""):`<div class="empty">${empty}</div>`)+
+   (list.length?list.map(g=>gameCard(g)).join(""):`<div class="empty">${empty}</div>`)+
+   (state.feed==="tonight"&&prev&&prev.show&&prev.games.length?`<div class="mt" style="margin:16px 2px 10px">${esc(prev.date)} · live and final</div>`+prev.games.map(g=>gameCard(g,prev.date)).join(""):"")+
    `<div class="foot">Win chance blends each team's record with the posted moneyline when there is one. Squares show the last few results, oldest to newest.</div>`;
 }
 
@@ -268,10 +273,15 @@ function edgeHTML(){
    <div class="mt" style="margin-top:8px">Total back if it hits: $${(stake*d).toFixed(2)}</div>
    <div class="stat" style="margin-top:8px"><span class="mt">FanDuel implies ${pc(1/d)} · model says ${pc(pr)} · expected return on $${stake.toFixed(2)}</span><b class="${ev>0?"g":ev<0?"r":""}">${ev>0?"+":ev<0?"-":""}$${Math.abs(ev).toFixed(2)}</b></div>`;
 }
+function legResult(l,g){ // once the game is over, say whether the pick won
+  if(!g||g.state!=="post"||!isNum(g.hs)||!isNum(g.as)||g.hs===g.as)return "";
+  const won=(l.team===g.h)===(g.hs>g.as);
+  return ` · <span class="${won?"g":"r"}">${won?"Won":"Lost"}</span>`;
+}
 function renderSlip(){
   const pr=slipProb();
-  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">My slip</div>${slip.length?slip.map(l=>{const g=findGame(l.k), post=g?(l.team===g.h?g.mlh:g.mla):null;
-    return `<div class="leg col"><div class="row">${av(l.team)}<div class="sp"><div class="nm">${esc(tname(l.team))} moneyline</div><div class="mt">${g?(l.team===g.h?"vs "+esc(g.a):"at "+esc(g.h))+" · "+esc(statusText(g)):""}</div></div><b>${pc(legProb(l))}</b><button class="x" data-a="rm" data-k="${esc(l.k)}" aria-label="Remove ${esc(tname(l.team))}">${I.close}</button></div>
+  main.innerHTML=`<div class="card"><div class="h" style="font-size:18px">My slip</div>${slip.length?slip.map(l=>{const g=legGame(l), post=g?(l.team===g.h?g.mlh:g.mla):null;
+    return `<div class="leg col"><div class="row">${av(l.team)}<div class="sp"><div class="nm">${esc(tname(l.team))} moneyline</div><div class="mt">${g?(l.team===g.h?"vs "+esc(g.a):"at "+esc(g.h))+" · "+esc(statusText(g))+legResult(l,g):""}</div></div><b>${pc(legProb(l))}</b><button class="x" data-a="rm" data-k="${esc(l.k)}" aria-label="Remove ${esc(tname(l.team))}">${I.close}</button></div>
      <div class="oddsrow"><input data-odds="${esc(okey(l))}" aria-label="FanDuel odds for ${esc(tname(l.team))}" placeholder="${isNum(post)?fmtML(post):"-150"}" value="${esc(legOdds[okey(l)]||"")}" autocomplete="off" autocapitalize="off"><div class="mt sp" data-note="${esc(okey(l))}">${legNote(l)}</div></div></div>`}).join(""):`<div class="empty">No picks yet. Pick a winner on any game, or use the plus button to auto-build.</div>`}</div>
    ${slip.length?`<div class="card"><div class="grid" style="margin-top:0"><div class="stat"><span class="mt">Chance all hit</span><b>${pc(pr)}</b></div><div class="stat"><span class="mt">Fair odds</span><b>${american(pr)}</b></div></div>
      <label class="f" style="margin-top:12px">Your bet ($)<input id="stake" inputmode="decimal" aria-label="Stake in dollars" value="${esc(state.stake)}" autocomplete="off"></label>
@@ -350,6 +360,7 @@ $("fab").onclick=()=>go("build");
     if(c.rec&&typeof c.rec==="object")Object.keys(c.rec).forEach(t=>{const x=c.rec[t];if(isTeam(t)&&x&&Number.isInteger(x.w)&&Number.isInteger(x.l)&&x.w>=0&&x.l>=0)rec[t]={w:x.w,l:x.l}});
     if(Array.isArray(c.results)){const have=new Set(results.map(r=>r.id));c.results.forEach(r=>{const v=cleanResult(r);if(v&&!have.has(v.id)){results.push(v);have.add(v.id)}})}
     const sl=cleanSlate(c.slate); if(sl){slate=sl;live=true}
+    const pv=cleanSlate(c.prev); if(pv){pv.show=c.prev.show===true;prev=pv}
     if(isNum(c.updatedAt))updatedAt=c.updatedAt;
     if(Number.isInteger(c.season))season=c.season;
     if(c.days&&typeof c.days==="object"&&!Array.isArray(c.days))Object.keys(c.days).forEach(d=>{if(/^\d{4}-\d{2}-\d{2}$/.test(d))doneDays[d]=1});
@@ -359,7 +370,7 @@ function cleanResult(r){return r&&typeof r.id==="string"&&typeof r.d==="string"&
 function cleanSlate(sd){
   if(!sd||!Array.isArray(sd.games)||typeof sd.date!=="string"||!sd.date.trim())return null;
   const seen=new Set();
-  const gs=sd.games.filter(x=>x&&isTeam(x.a)&&isTeam(x.h)&&x.a!==x.h&&!seen.has(x.a+"@"+x.h)&&seen.add(x.a+"@"+x.h)).map(x=>({a:x.a,h:x.h,t:typeof x.t==="string"?x.t:"",wa:isNum(x.wa)?x.wa:null,wh:isNum(x.wh)?x.wh:null,mla:isNum(x.mla)&&Math.abs(x.mla)>=100?x.mla:null,mlh:isNum(x.mlh)&&Math.abs(x.mlh)>=100?x.mlh:null,prov:typeof x.prov==="string"?x.prov.slice(0,30):"",state:x.state==="in"||x.state==="post"?x.state:"pre",hs:isNum(x.hs)?x.hs:null,as:isNum(x.as)?x.as:null}));
+  const gs=sd.games.filter(x=>x&&isTeam(x.a)&&isTeam(x.h)&&x.a!==x.h&&!seen.has(x.a+"@"+x.h)&&seen.add(x.a+"@"+x.h)).map(x=>({a:x.a,h:x.h,t:typeof x.t==="string"?x.t:"",wa:isNum(x.wa)?x.wa:null,wh:isNum(x.wh)?x.wh:null,mla:isNum(x.mla)&&Math.abs(x.mla)>=100?x.mla:null,mlh:isNum(x.mlh)&&Math.abs(x.mlh)>=100?x.mlh:null,prov:typeof x.prov==="string"?x.prov.slice(0,30):"",state:x.state==="in"||x.state==="post"?x.state:"pre",detail:typeof x.detail==="string"?x.detail.slice(0,24):"",hs:isNum(x.hs)?x.hs:null,as:isNum(x.as)?x.as:null}));
   return {date:sd.date.trim(),games:gs};
 }
 (function(){const o=load("pl3_odds",null);if(o&&typeof o==="object"&&!Array.isArray(o))Object.keys(o).forEach(k=>{if(typeof o[k]==="string"&&o[k].length<=12)legOdds[k]=o[k]})})();
@@ -397,7 +408,7 @@ function parseBoard(j,iso){
     const hs=parseInt(H.score,10), as=parseInt(A.score,10), when=new Date(ev.date);
     const recOf=x=>{const r=Array.isArray(x.records)?x.records.find(y=>y&&y.type==="total"):null, m=r&&/^(\d+)-(\d+)$/.exec(String(r.summary||""));return m?{w:+m[1],l:+m[2]}:null};
     const ml=state==="pre"?moneyline(c):null;
-    out.push({id:String(ev.id),d:iso,h,a,state,done:st.completed===true,hs:Number.isFinite(hs)?hs:null,as:Number.isFinite(as)?as:null,
+    out.push({id:String(ev.id),d:iso,h,a,state,detail:state==="in"&&typeof st.shortDetail==="string"?st.shortDetail:"",done:st.completed===true,hs:Number.isFinite(hs)?hs:null,as:Number.isFinite(as)?as:null,
       t:isNaN(when)?"":when.toLocaleTimeString([],{hour:"numeric",minute:"2-digit",timeZoneName:"short"}),wa:ml?ml.wa:null,wh:ml?ml.wh:null,mla:ml?ml.mla:null,mlh:ml?ml.mlh:null,prov:ml?ml.prov:"",rh:recOf(H),ra:recOf(A)});
   }catch(e){}});
   return out;
@@ -408,13 +419,16 @@ async function refresh(manual){
   try{
     const today=etDay(new Date());
     // 1. the slate: the first day from today that still has a game to play
-    // Last night's slate stays up while any of its games is still being played (late tips end after midnight Eastern).
-    let sl=null, first=null, late=[];
-    for(let i=-1;i<5&&!sl;i++){const iso=dayShift(today,i), g=parseBoard(await board(iso),iso);
-      if(i===-1){late=g;if(g.some(x=>x.state==="in"))sl={iso,games:g};continue}
+    // The slate is the first day from today with a game that has not started. The day just played stays
+    // available underneath it, so live scores, finals and any picks on those games are still shown.
+    const yday=dayShift(today,-1), late=parseBoard(await board(yday),yday);
+    let sl=null, first=null, pv=null;
+    for(let i=0;i<5&&!sl;i++){const iso=dayShift(today,i), g=parseBoard(await board(iso),iso);
       if(i===0)first=g;
-      if(g.some(x=>x.state!=="post"))sl={iso,games:g}}
+      if(g.some(x=>x.state==="pre"))sl={iso,games:g}}
     if(!sl)sl={iso:today,games:first||[]};
+    if(sl.iso!==today&&first&&first.length)pv={iso:today,games:first,show:true};
+    else if(late.length)pv={iso:yday,games:late,show:late.some(x=>x.state==="in")};
     // 2. recent results: the last 7 days, skipping days already fully saved
     const need=[];for(let i=1;i<=7;i++){const iso=dayShift(today,-i);if(!doneDays[iso])need.push(iso)}
     const past=await Promise.allSettled(need.map(iso=>board(iso).then(j=>({iso,g:parseBoard(j,iso)}))));
@@ -437,15 +451,17 @@ async function refresh(manual){
     const bump=(t,r)=>{if(r&&r.w+r.l<=82&&r.w+r.l>=rec[t].w+rec[t].l)rec[t]=r};
     [...late,...(first||[]),...sl.games].forEach(g=>{bump(g.h,g.rh);bump(g.a,g.ra)});
     // 4. swap in the new slate
-    if(slate.date===dayLabel(sl.iso))sl.games.forEach(g=>{if(g.state!=="pre"&&g.wa==null){const old=slate.games.find(o=>o.a===g.a&&o.h===g.h);if(old&&isNum(old.wa)&&isNum(old.wh)){g.wa=old.wa;g.wh=old.wh;g.mla=old.mla;g.mlh=old.mlh;g.prov=old.prov}}}); // keep the pre-game line after tip-off
+    const oldBy=Object.create(null);[slate,prev].forEach(o=>{if(o)oldBy[o.date]=o.games});
+    [sl,pv].forEach(dy=>{if(dy)dy.games.forEach(g=>{if(g.state!=="pre"&&g.wa==null){const old=(oldBy[dayLabel(dy.iso)]||[]).find(o=>o.a===g.a&&o.h===g.h);if(old&&isNum(old.wa)&&isNum(old.wh)){g.wa=old.wa;g.wh=old.wh;g.mla=old.mla;g.mlh=old.mlh;g.prov=old.prov}}})}); // keep the pre-game line after tip-off
     const next=cleanSlate({date:dayLabel(sl.iso),games:sl.games});
     if(next){slate=next;live=true}
+    const pclean=pv?cleanSlate({date:dayLabel(pv.iso),games:pv.games}):null; if(pclean)pclean.show=pv.show; prev=pclean;
     results.sort((x,y)=>y.d.localeCompare(x.d)); if(results.length>400)results.length=400;
     updatedAt=Date.now(); net="ok";
     buildForm(); prune();
     if(!restored){restored=true;dropped.forEach(sv=>{if(!slip.some(l=>l.k===sv.k))slip.push(sv)});prune()}
     gcOdds(); store("pl2_slip",slip);
-    store("pl3_cache",{slate,rec:Object.assign({},rec),results,updatedAt,season,days:doneDays});
+    store("pl3_cache",{slate,prev,rec:Object.assign({},rec),results,updatedAt,season,days:doneDays});
     if(manual)toast("Updated");
   }catch(e){net="fail";if(manual)toast("Could not reach the data source")}
   busy=false; softRender();

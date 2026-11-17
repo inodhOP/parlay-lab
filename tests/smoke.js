@@ -32,6 +32,9 @@ function boards(mode) {
       [day(1)]: [event("n1", soon(24), "pre", ["MIA", "7-6"], ["HOU", "11-3"], 0, 0)],
     };
   }
+  if (mode === "before") {
+    return { [day(0)]: [event("t1", soon(2), "pre", ["BOS", "12-2"], ["ORL", "5-8"], 0, 0, [-400, 310])], [day(1)]: [event("n1", soon(24), "pre", ["MIA", "7-6"], ["HOU", "11-3"], 0, 0)] };
+  }
   if (mode === "late") {
     return {
       [day(-1)]: [event("l1", soon(-3), "in", ["LAL", "12-2"], ["CHA", "4-9"], 88, 80), event("l2", soon(-6), "post", ["TOR", "5-9"], ["NY", "8-6"], 101, 110)],
@@ -96,7 +99,7 @@ const text = (page) => page.evaluate(() => document.querySelector("#main").inner
   check((await page.locator("[data-a=pick]").count()) === 4, "only games that have not started can be picked", await page.locator("[data-a=pick]").count());
   check(["Golden State Warriors", "New York Knicks", "Utah Jazz", "San Antonio Spurs", "Washington Wizards", "New Orleans Pelicans"].every((n) => t.includes(n)), "feed team codes are mapped to teams");
   check(!t.includes("<img") && (await page.locator("#main img[src='x']").count()) === 0, "unknown or hostile team codes are dropped");
-  check(/In progress/.test(t) && /Final NOP 110, WAS 99/.test(t), "live and final games show their status");
+  check(/Live · SAS 60, UTA 50/.test(t) && /Final · NOP 110, WAS 99/.test(t), "live and final games show their status");
   check(/updated/.test(t), "status line reports a successful update");
   check(/TestBook moneyline: NYK \+150, GSW -180/.test(t), "posted moneyline is shown");
   check(/4-11/.test(t), "newer record on the scoreboard beats the standings table");
@@ -164,15 +167,34 @@ const text = (page) => page.evaluate(() => document.querySelector("#main").inner
   mode = { current: "allfinal" };
   ({ page, ctx, errors } = await open(browser, mode));
   t = await text(page);
-  check(t.includes("Miami Heat") && t.includes("Houston Rockets") && !t.includes("Boston Celtics"), "slate rolls to the next day once today is finished");
+  check(t.indexOf("Miami Heat") > -1 && t.indexOf("Miami Heat") < t.indexOf("Boston Celtics"), "slate rolls to the next day once today's games have all started");
+  check(/live and final/.test(t) && /Final · ORL 100, BOS 120/.test(t), "today's finished games stay visible underneath");
+  check((await page.locator("[data-a=pick]").count()) === 2, "only the upcoming game can be picked", await page.locator("[data-a=pick]").count());
   check(errors.length === 0, "no script errors on rollover", errors);
+  await ctx.close();
+
+  // --- a pick is kept, and settled, after its game finishes -----------------
+  mode = { current: "before" };
+  ({ page, ctx, errors } = await open(browser, mode));
+  await page.locator('[data-a=pick][data-t="BOS"]').click();
+  mode.current = "allfinal";
+  await page.reload();
+  await page.waitForTimeout(900);
+  check((await page.locator("#slipCnt").innerText()) === "1", "a pick stays on the slip after its game ends");
+  await page.locator("[data-nav=slip]").click();
+  t = await text(page);
+  check(/Boston Celtics moneyline/.test(t) && /Won/.test(t) && /7\d%|8\d%/.test(t), "the finished pick shows its result and keeps its pre-game chance", t.slice(0, 160));
+  await page.locator("[data-nav=home]").click();
+  await page.locator('[data-a=pick][data-t="HOU"]').click();
+  check((await page.locator("#slipCnt").innerText()) === "2", "new picks can be added alongside it");
+  check(errors.length === 0, "no script errors across a finished game", errors);
   await ctx.close();
 
   // --- after midnight with a late game still going: last night's slate stays -
   mode = { current: "late" };
   ({ page, ctx, errors } = await open(browser, mode));
   t = await text(page);
-  check(t.includes("Los Angeles Lakers") && /In progress/.test(t) && !t.includes("Miami Heat"), "last night's slate stays while a late game is in progress");
+  check(t.indexOf("Miami Heat") > -1 && t.indexOf("Miami Heat") < t.indexOf("Los Angeles Lakers") && /Live · CHA 80, LAL 88/.test(t), "a late game from last night stays visible under today's slate");
   check(errors.length === 0, "no script errors with a late game", errors);
   await ctx.close();
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 (2026-11-16)
+
+- The slate now moves to the next day with games as soon as every game today has started, so there is always something to pick.
+- The day just played stays underneath as "live and final", with live scores and the game clock.
+- Picks on games that have started stay on the slip, and show Won or Lost when the game ends.
+
 ## 1.0.2 (2026-11-16)
 
 - Added a content security policy: the page can only load data from ESPN and images from ESPN or itself, and cannot load outside scripts.
