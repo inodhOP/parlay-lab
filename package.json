@@ -1,6 +1,6 @@
 {
   "name": "parlay-lab",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "NBA moneyline parlay helper that updates itself from public data.",
   "license": "MIT",

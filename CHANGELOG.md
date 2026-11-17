@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 (2026-11-16)
+
+- Added a content security policy: the page can only load data from ESPN and images from ESPN or itself, and cannot load outside scripts.
+
 ## 1.0.1 (2026-11-16)
 
 Fixes from a full code review.

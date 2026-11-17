@@ -64,7 +64,7 @@ FanDuel's own odds are not loaded automatically, because there is no free public
 
 ## Privacy
 
-Nothing you do in the app leaves your device. Picks, followed teams, the odds you type and the last data update are stored in your browser's local storage only. The app has no analytics, no cookies and no account. The only network requests are to ESPN, for data and team logo images.
+Nothing you do in the app leaves your device. Picks, followed teams, the odds you type and the last data update are stored in your browser's local storage only. The app has no analytics, no cookies and no account. The only network requests are to ESPN, for data and team logo images. A content security policy in the page enforces this: the browser blocks requests to anywhere else and refuses outside scripts.
 
 ## Project layout
 
