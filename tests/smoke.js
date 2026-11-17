@@ -78,6 +78,8 @@ async function open(browser, mode, context) {
     if (mode.current === "offline") return r.abort();
     const url = r.request().url();
     if (url.includes("standings")) return r.fulfill({ json: standings });
+    if (url.includes("injuries")) return r.fulfill({ json: { injuries: [{ displayName: "Golden State Warriors", injuries: [{ status: "Out", athlete: { displayName: "Test Guard" } }, { status: "Day-To-Day", athlete: { displayName: "<b>Bad</b> Name" } }] }] } });
+    if (url.includes("summary")) return r.fulfill({ json: { predictor: { homeTeam: { gameProjection: "61.0" }, awayTeam: { gameProjection: "39.0" } } } });
     const d = (url.match(/dates=(\d+)/) || [])[1];
     return r.fulfill({ json: { events: boards(mode.current)[d] || [] } });
   });
@@ -105,7 +107,15 @@ const text = (page) => page.evaluate(() => document.querySelector("#main").inner
   check(/Warriors home game · Test Arena GS, Testville/.test(t), "each game says whose home game it is and where");
   check(/(Today|Tomorrow) · \w{3} \w{3} \d{1,2}/.test(t) && /\d{1,2}:\d{2} [AP]M ET/.test(t), "the slate shows its date and each game its Toronto time", t.slice(0, 300));
   check(/For adults 19 and over/.test(t) && /ConnexOntario/.test(t), "19+ notice and help line are shown");
+  check(/Injuries: Warriors 1 out, 1 may sit/.test(t), "injury counts show on the game card");
   await page.locator("[data-a=adult]").click();
+  await page.locator(".card.tap .more").first().click();
+  await page.waitForTimeout(400);
+  const sh = await page.evaluate(() => document.querySelector("#sheetwrap").innerText);
+  check(/Knicks at Warriors/.test(sh) && /Test Guard/.test(sh) && /testbook/i.test(sh) && /NYK|Knicks \+150/.test(sh) && /ESPN's own estimate: Knicks 39%, Warriors 61%/.test(sh), "game details sheet shows injuries, lines and ESPN's estimate", sh);
+  check((await page.locator("#sheetwrap b").count()) === 0, "injury names from the feed are escaped");
+  await page.locator(".sheet [data-a=closesheet]").click();
+  check((await page.locator(".sheet").count()) === 0, "details sheet closes");
   check(!/For adults 19 and over/.test(await text(page)), "19+ notice goes away once confirmed");
 
   // GSW at home: strength 11/19 vs NYK 10/19, home edge 1.3, blended with the de-vigged line.
